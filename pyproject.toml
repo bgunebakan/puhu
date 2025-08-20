@@ -1,0 +1,55 @@
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "puhu"
+version = "0.1.0"
+description = "A modern, high-performance image processing library for Python, powered by Rust."
+authors = [
+    {name = "Bilal Tonga", email = "bilaltonga@gmail.com"},
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Rust",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+keywords = ["image", "processing", "pillow", "rust", "performance"]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-benchmark>=4.0",
+    "numpy>=1.20",
+    "pillow>=9.0",  # For comparison testing
+]
+
+[project.urls]
+Homepage = "https://github.com/bgunebakan/puhu"
+Repository = "https://github.com/bgunebakan/puhu"
+Documentation = "https://bgunebakan.github.io/puhu"
+Issues = "https://github.com/bgunebakan/puhu/issues"
+
+[tool.maturin]
+python-source = "python"
+module-name = "puhu._core"
+features = ["pyo3/extension-module"]
+
+[tool.pytest.ini_options]
+testpaths = ["python/puhu/tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]

@@ -1,0 +1,26 @@
+[package]
+name = "puhu-core"
+version = "0.1.0"
+edition = "2021"
+authors = ["Bilal Tonga"]
+description = "A high-performance, memory-safe image processing library for Python"
+license = "MIT"
+repository = "https://github.com/bgunebakan/puhu"
+
+[lib]
+name = "puhu_core"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.22", features = ["extension-module", "abi3", "abi3-py38"] }
+image = { version = "0.25.6", features = ["jpeg", "png", "gif", "bmp", "tiff", "webp"], default-features = false }
+rayon = "1.7"
+thiserror = "1.0"
+
+[features]
+default = []
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
