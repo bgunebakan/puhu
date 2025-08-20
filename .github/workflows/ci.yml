@@ -81,20 +81,12 @@ jobs:
 
       - name: Build Rust extension with maturin
         run: |
-          maturin build --release --out dist
-          pip install dist/*.whl
+          maturin build --release --out dist --find-interpreter
+          pip install dist/*.whl --force-reinstall
 
       - name: Run Python tests
         run: |
-          pytest python/puhu/tests/ -v --cov=puhu --cov-report=xml --cov-report=term
-
-      - name: Upload coverage to Codecov
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
-        uses: codecov/codecov-action@v3
-        with:
-          file: ./coverage.xml
-          flags: unittests
-          name: codecov-umbrella
+          pytest python/puhu/tests/ -v
 
   build-wheels:
     name: Build wheels on ${{ matrix.os }}
@@ -166,8 +158,8 @@ jobs:
 
       - name: Build package
         run: |
-          maturin build --release --out dist
-          pip install dist/*.whl
+          maturin build --release --out dist --find-interpreter
+          pip install dist/*.whl --force-reinstall
 
       - name: Run benchmarks
         run: |
