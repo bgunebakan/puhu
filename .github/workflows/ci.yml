@@ -81,7 +81,8 @@ jobs:
 
       - name: Build Rust extension with maturin
         run: |
-          maturin develop --release
+          maturin build --release --out dist
+          pip install dist/*.whl
 
       - name: Run Python tests
         run: |
@@ -165,7 +166,8 @@ jobs:
 
       - name: Build package
         run: |
-          maturin develop --release
+          maturin build --release --out dist
+          pip install dist/*.whl
 
       - name: Run benchmarks
         run: |
