@@ -79,10 +79,13 @@ jobs:
       #   run: |
       #     cargo fmt --check
 
-      - name: Build Rust extension with maturin
+      - name: Build and install Rust extension with maturin
         run: |
-          maturin build --release --out dist --find-interpreter
-          pip install dist/*.whl --force-reinstall
+          # Install in editable mode using pip install -e .
+          # This ensures maturin builds and installs properly
+          pip install -e . --verbose
+          # Verify installation
+          python -c "import puhu; print('Puhu installed successfully')"
 
       - name: Run Python tests
         run: |
@@ -158,8 +161,7 @@ jobs:
 
       - name: Build package
         run: |
-          maturin build --release --out dist --find-interpreter
-          pip install dist/*.whl --force-reinstall
+          pip install -e . --verbose
 
       - name: Run benchmarks
         run: |
