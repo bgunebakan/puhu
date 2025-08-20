@@ -1,12 +1,13 @@
 """
-Functional API for image operations - provides Pillow-compatible module-level functions
+Functional API for image operations
+provides Pillow-compatible module-level functions
 """
 
-from typing import Union, Tuple, Optional
 from pathlib import Path
+from typing import Optional, Tuple, Union
 
-from .image import Image
 from .enums import Resampling
+from .image import Image
 
 
 def open(
@@ -19,8 +20,8 @@ def open(
 
     Args:
         fp: File path, file object, or bytes
-        mode: Optional mode hint (not used in current implementation)
-        formats: Optional list of formats to try (not used in current implementation)
+        mode: Optional mode hint TODO: implement
+        formats: Optional list of formats TODO: implement
 
     Returns:
         Image instance
@@ -67,7 +68,9 @@ def save(
 
 
 def resize(
-    image: Image, size: Tuple[int, int], resample: Union[int, str] = Resampling.BILINEAR
+    image: Image,
+    size: Tuple[int, int],
+    resample: Union[int, str] = Resampling.BILINEAR,
 ) -> Image:
     """
     Resize an image.

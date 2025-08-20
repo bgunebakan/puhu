@@ -2,12 +2,14 @@
 Comprehensive tests for the Image class and all functionality
 """
 
-import pytest
 import tempfile
 from pathlib import Path
 
-from puhu import Image, Resampling, Transpose, ImageMode, ImageFormat
-from puhu import open as puhu_open, new as puhu_new
+import pytest
+
+from puhu import Image, Resampling, Transpose
+from puhu import new as puhu_new
+from puhu import open as puhu_open
 
 
 class TestImage:

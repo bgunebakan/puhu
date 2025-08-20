@@ -2,11 +2,10 @@
 Python Image class that wraps the Rust Puhu implementation
 """
 
-from typing import Optional, Union, Tuple, Any
 from pathlib import Path
+from typing import Any, Optional, Tuple, Union
 
 from ._core import Image as RustImage
-
 from .enums import Resampling, Transpose
 
 
@@ -154,7 +153,9 @@ class Image:
         self._rust_image.save(fp, format)
 
     def resize(
-        self, size: Tuple[int, int], resample: Union[int, str] = Resampling.BILINEAR
+        self,
+        size: Tuple[int, int],
+        resample: Union[int, str] = Resampling.BILINEAR,
     ) -> "Image":
         """
         Resize the image.
@@ -192,7 +193,10 @@ class Image:
         return Image(rust_image)
 
     def rotate(
-        self, angle: float, expand: bool = False, fillcolor: Optional[Any] = None
+        self,
+        angle: float,
+        expand: bool = False,
+        fillcolor: Optional[Any] = None,
     ) -> "Image":
         """
         Rotate the image.
@@ -254,7 +258,9 @@ class Image:
         return Image(rust_image)
 
     def thumbnail(
-        self, size: Tuple[int, int], resample: Union[int, str] = Resampling.BICUBIC
+        self,
+        size: Tuple[int, int],
+        resample: Union[int, str] = Resampling.BICUBIC,
     ) -> None:
         """
         Create a thumbnail version of the image in-place.

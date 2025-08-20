@@ -4,7 +4,7 @@ Comprehensive tests for the enum functionality
 
 import pytest
 
-from puhu import Resampling, Transpose, ImageMode, ImageFormat
+from puhu import ImageFormat, ImageMode, Resampling, Transpose
 
 
 class TestEnums:
