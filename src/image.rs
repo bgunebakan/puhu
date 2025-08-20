@@ -342,79 +342,11 @@ impl PyImage {
         })
     }
 
-    // Optimized buffer access without copying
-    fn get_buffer_info(&mut self) -> PyResult<(usize, usize, String)> {
-        let image = self.get_image()?;
-        let (width, height) = (image.width(), image.height());
-        let mode = color_type_to_mode_string(image.color());
-        Ok((width as usize, height as usize, mode))
-    }
-
     fn copy(&self) -> Self {
         PyImage {
             lazy_image: self.lazy_image.clone(),
             format: self.format,
         }
-    }
-
-    // Batch operations to reduce Python-Rust boundary crossings
-    #[classmethod]
-    fn open_and_resize(_cls: &Bound<'_, PyType>, path_or_bytes: &Bound<'_, PyAny>, size: (u32, u32), resample: Option<String>) -> PyResult<Self> {
-        if let Ok(path) = path_or_bytes.extract::<String>() {
-            Python::with_gil(|py| {
-                py.allow_threads(|| {
-                    let image = image::open(&path)
-                        .map_err(|e| PuhuError::ImageError(e))?;
-                    let format = ImageFormat::from_path(&path).ok();
-                    let filter = operations::parse_resample_filter(resample.as_deref())?;
-                    let (width, height) = size;
-                    let resized = image.resize(width, height, filter);
-                    Ok(PyImage { lazy_image: LazyImage::Loaded(resized), format })
-                })
-            })
-        } else {
-            Err(PuhuError::InvalidOperation(
-                "open_and_resize only supports file paths currently".to_string()
-            ).into())
-        }
-    }
-
-    fn resize_and_crop(&mut self, resize_size: (u32, u32), crop_box: (u32, u32, u32, u32), resample: Option<String>) -> PyResult<Self> {
-        let (resize_width, resize_height) = resize_size;
-        let (x, y, crop_width, crop_height) = crop_box;
-        let filter = operations::parse_resample_filter(resample.as_deref())?;
-        let format = self.format;
-        let image = self.get_image()?;
-        
-        Ok(Python::with_gil(|py| {
-            py.allow_threads(|| {
-                let resized = image.resize(resize_width, resize_height, filter);
-                let cropped = resized.crop_imm(x, y, crop_width, crop_height);
-                PyImage {
-                    lazy_image: LazyImage::Loaded(cropped),
-                    format,
-                }
-            })
-        }))
-    }
-
-    fn crop_and_resize(&mut self, crop_box: (u32, u32, u32, u32), resize_size: (u32, u32), resample: Option<String>) -> PyResult<Self> {
-        let (x, y, crop_width, crop_height) = crop_box;
-        let (resize_width, resize_height) = resize_size;
-        let filter = operations::parse_resample_filter(resample.as_deref())?;
-        let format = self.format;
-        let image = self.get_image()?;
-        
-        Ok(Python::with_gil(|py| {
-            py.allow_threads(|| {
-                let cropped = image.crop_imm(x, y, crop_width, crop_height);
-                let resized = cropped.resize(resize_width, resize_height, filter);
-                PyImage {
-                    lazy_image: LazyImage::Loaded(resized),
-                    format,
-                }
-            })
-        }))
     }
 
     fn __repr__(&mut self) -> String {
@@ -427,47 +359,5 @@ impl PyImage {
             },
             Err(_) => "<Image [Error loading image]>".to_string(),
         }
-    }
-
-    // High-performance workflow operations
-    fn workflow_resize_crop_save(&mut self, resize_size: (u32, u32), crop_box: (u32, u32, u32, u32), 
-                                 save_path: &str, resample: Option<String>, format: Option<String>) -> PyResult<()> {
-        let (resize_width, resize_height) = resize_size;
-        let (x, y, crop_width, crop_height) = crop_box;
-        let filter = operations::parse_resample_filter(resample.as_deref())?;
-        let image = self.get_image()?;
-        
-        // Validate crop bounds after resize
-        if x + crop_width > resize_width || y + crop_height > resize_height {
-            return Err(PuhuError::InvalidOperation(
-                format!("Crop coordinates ({}+{}, {}+{}) exceed resized image bounds ({}x{})", 
-                       x, crop_width, y, crop_height, resize_width, resize_height)
-            ).into());
-        }
-        
-        if crop_width == 0 || crop_height == 0 {
-            return Err(PuhuError::InvalidOperation(
-                "Crop dimensions must be greater than 0".to_string()
-            ).into());
-        }
-        
-        let save_format = if let Some(fmt) = format {
-            formats::parse_format(&fmt)?
-        } else {
-            ImageFormat::from_path(save_path)
-                .map_err(|_| PuhuError::UnsupportedFormat(
-                    "Cannot determine format from path".to_string()
-                ))?
-        };
-        
-        Python::with_gil(|py| {
-            py.allow_threads(|| {
-                let resized = image.resize(resize_width, resize_height, filter);
-                let cropped = resized.crop_imm(x, y, crop_width, crop_height);
-                cropped.save_with_format(save_path, save_format)
-                    .map_err(|e| PuhuError::ImageError(e))
-                    .map_err(|e| e.into())
-            })
-        })
     }
 }
