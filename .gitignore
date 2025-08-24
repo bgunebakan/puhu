@@ -236,7 +236,7 @@ test_images/
 
 # Project specific - Puhu
 # Example outputs (but keep the input images)
-examples/output/
+!examples/output/
 examples/*.png
 examples/*.jpg
 examples/*.jpeg
