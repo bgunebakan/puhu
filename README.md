@@ -93,19 +93,51 @@ img.save("resized.jpg")
 
 ### 🎨 Image Filters - **NEW!**
 
+**Basic Filters:**
 - `blur()` - Gaussian blur with adjustable radius
 - `sharpen()` - Sharpening filter with adjustable strength
 - `edge_detect()` - Edge detection using Sobel operator
 - `emboss()` - Emboss effect
 - `brightness()` - Brightness adjustment
 - `contrast()` - Contrast adjustment
-- **Filter chaining** - Combine multiple filters for complex effects
+
+**CSS-like Filters:**
+- `sepia()` - Sepia tone effect
+- `grayscale_filter()` - Grayscale conversion with amount control
+- `invert()` - Color inversion effect
+- `hue_rotate()` - Hue rotation in degrees
+- `saturate()` - Saturation adjustment
+
+**Filter chaining** - Combine multiple filters for complex effects
+
+### 🎯 Pixel Manipulation - **NEW!**
+
+- `getpixel()`, `putpixel()` - Direct pixel access and modification
+- `histogram()` - Color histogram analysis
+- `dominant_color()`, `average_color()` - Color analysis
+- `replace_color()` - Color replacement with tolerance
+- `threshold()` - Binary thresholding
+- `posterize()` - Color quantization
+
+### 🎨 Drawing Operations - **NEW!**
+
+- `draw_rectangle()` - Filled rectangles with alpha blending
+- `draw_circle()` - Filled circles with alpha blending
+- `draw_line()` - Lines using Bresenham's algorithm
+- `draw_text()` - Basic text rendering with bitmap fonts
+
+### ✨ Shadow Effects - **NEW!**
+
+- `drop_shadow()` - Drop shadow with blur and offset
+- `inner_shadow()` - Inner shadow effects
+- `glow()` - Glow effects with customizable intensity
 
 ### 🚧 Planned Features
 
-- `getpixel()`, `putpixel()` - _Pixel-level operations_
 - `frombytes()`, `tobytes()` - _Enhanced I/O_
-- Additional filters and effects
+- Advanced text rendering with font support
+- Path operations and vector graphics
+- Additional blend modes and compositing operations
 
 ## 📖 API Reference
 
@@ -217,6 +249,31 @@ high_contrast = img.contrast(1.5)          # 1.5x contrast
 
 # Filter chaining for complex effects
 artistic = img.blur(1.0).sharpen(2.0).brightness(20).contrast(1.3)
+
+# CSS-like filters
+sepia_img = img.sepia(0.8)                 # Sepia tone
+inverted = img.invert(1.0)                 # Color inversion
+hue_shifted = img.hue_rotate(90)           # Hue rotation
+desaturated = img.saturate(0.5)            # Reduce saturation
+
+# Pixel manipulation
+pixel = img.getpixel(100, 100)             # Get pixel value
+modified = img.putpixel(100, 100, (255, 0, 0, 255))  # Set pixel
+r_hist, g_hist, b_hist, a_hist = img.histogram()     # Color histogram
+dominant = img.dominant_color()            # Most common color
+average = img.average_color()              # Average color
+
+# Drawing operations
+canvas = puhu.new("RGB", (400, 300), (255, 255, 255))
+canvas = canvas.draw_rectangle(50, 50, 100, 80, (255, 0, 0, 255))
+canvas = canvas.draw_circle(200, 150, 40, (0, 255, 0, 255))
+canvas = canvas.draw_line(10, 10, 390, 290, (0, 0, 255, 255))
+canvas = canvas.draw_text("PUHU", 150, 200, (0, 0, 0, 255), 2)
+
+# Shadow effects (convert to RGBA first for best results)
+rgba_img = img.convert("RGBA")
+with_shadow = rgba_img.drop_shadow(5, 5, 3.0, (0, 0, 0, 128))
+with_glow = rgba_img.glow(8.0, (255, 255, 0, 150), 1.5)
 
 # Functional API for filters
 blurred_func = puhu.blur(img, 3.0)
