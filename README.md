@@ -5,7 +5,16 @@
 [![Rust](https://img.shields.io/badge/rust-1.70+-orange.svg)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-A **blazingly fast**, modern image processing library for Python, powered by Rust. Puhu provides a Pillow-compatible API while delivering significantly performance for common image operations.
+A **blazingly fast**, modern image processing library for Python, powered by Rust. Puhu provides a Pillow-compatible API while delivering significantly better performance for common image operations.
+
+## 📚 Documentation
+
+- **[Quick Start Guide](docs/quickstart.md)** - Get up and running in minutes
+- **[Basic Usage](docs/basic-usage.md)** - Core concepts and common patterns
+- **[API Reference](docs/api-reference.md)** - Complete method documentation
+- **[Examples](docs/examples.md)** - Real-world usage examples
+- **[Performance Guide](docs/performance.md)** - Optimization techniques
+- **[Migration Guide](docs/migration.md)** - Migrating from Pillow
 
 ## ✨ Key Features
 
@@ -199,87 +208,6 @@ format = img.format  # "JPEG", "PNG", etc.
 bytes_data = img.to_bytes()
 ```
 
-### New Features
-
-```python
-# Mode conversion
-gray_img = img.convert("L")        # Convert to grayscale
-rgba_img = img.convert("RGBA")     # Add alpha channel
-rgb_img = rgba_img.convert("RGB")  # Remove alpha channel
-
-# Channel splitting
-channels = img.split()
-# RGB image: returns [R, G, B] (3 grayscale images)
-# RGBA image: returns [R, G, B, A] (4 grayscale images)
-# Grayscale: returns [L] (1 grayscale image)
-
-# Image pasting/compositing
-base = puhu.new("RGB", (200, 200), "white")
-overlay = puhu.new("RGB", (100, 100), "red")
-
-# Basic paste at position
-result = base.paste(overlay, (50, 50))
-
-# Paste with mask (for alpha blending)
-mask = puhu.new("L", (100, 100), 128)  # 50% opacity
-result = base.paste(overlay, (50, 50), mask)
-
-# NumPy integration (requires numpy)
-import numpy as np
-
-# Create from array
-array = np.random.randint(0, 256, (100, 100, 3), dtype=np.uint8)  # RGB
-img = puhu.fromarray(array)
-
-# Grayscale array
-gray_array = np.random.randint(0, 256, (100, 100), dtype=np.uint8)
-gray_img = puhu.fromarray(gray_array)
-
-# Float arrays (automatically converted to uint8)
-float_array = np.random.random((50, 50, 3)).astype(np.float32)  # [0, 1] range
-img = puhu.fromarray(float_array)  # Automatically scaled to [0, 255]
-
-# Image filters
-blurred = img.blur(2.0)                    # Gaussian blur
-sharpened = img.sharpen(1.5)               # Sharpen filter
-edges = img.edge_detect()                  # Edge detection
-embossed = img.emboss()                    # Emboss effect
-brighter = img.brightness(50)              # Brightness +50
-high_contrast = img.contrast(1.5)          # 1.5x contrast
-
-# Filter chaining for complex effects
-artistic = img.blur(1.0).sharpen(2.0).brightness(20).contrast(1.3)
-
-# CSS-like filters
-sepia_img = img.sepia(0.8)                 # Sepia tone
-inverted = img.invert(1.0)                 # Color inversion
-hue_shifted = img.hue_rotate(90)           # Hue rotation
-desaturated = img.saturate(0.5)            # Reduce saturation
-
-# Pixel manipulation
-pixel = img.getpixel(100, 100)             # Get pixel value
-modified = img.putpixel(100, 100, (255, 0, 0, 255))  # Set pixel
-r_hist, g_hist, b_hist, a_hist = img.histogram()     # Color histogram
-dominant = img.dominant_color()            # Most common color
-average = img.average_color()              # Average color
-
-# Drawing operations
-canvas = puhu.new("RGB", (400, 300), (255, 255, 255))
-canvas = canvas.draw_rectangle(50, 50, 100, 80, (255, 0, 0, 255))
-canvas = canvas.draw_circle(200, 150, 40, (0, 255, 0, 255))
-canvas = canvas.draw_line(10, 10, 390, 290, (0, 0, 255, 255))
-canvas = canvas.draw_text("PUHU", 150, 200, (0, 0, 0, 255), 2)
-
-# Shadow effects (convert to RGBA first for best results)
-rgba_img = img.convert("RGBA")
-with_shadow = rgba_img.drop_shadow(5, 5, 3.0, (0, 0, 0, 128))
-with_glow = rgba_img.glow(8.0, (255, 255, 0, 150), 1.5)
-
-# Functional API for filters
-blurred_func = puhu.blur(img, 3.0)
-edges_func = puhu.edge_detect(img)
-```
-
 ## 🔧 Development
 
 ### Building from Source
@@ -306,13 +234,32 @@ pytest python/puhu/tests/
 - Rust 1.70+
 - Maturin for building
 
+## 📖 Learn More
+
+### 🚀 Getting Started
+- **[Quick Start Guide](docs/quickstart.md)** - Installation and first steps
+- **[Basic Usage](docs/basic-usage.md)** - Essential concepts and patterns
+- **[Migration Guide](docs/migration.md)** - Moving from Pillow to Puhu
+
+### 📚 Reference & Examples
+- **[API Reference](docs/api-reference.md)** - Complete method documentation
+- **[Examples](docs/examples.md)** - Real-world usage examples
+- **[Performance Guide](docs/performance.md)** - Optimization techniques
+
+### 🎯 Use Cases
+- **Photography**: Portrait enhancement, landscape processing, batch operations
+- **Web Development**: Image resizing, format optimization, thumbnail generation
+- **Creative Projects**: Artistic filters, collages, social media content
+- **Data Visualization**: Charts, infographics, dashboard creation
+- **E-commerce**: Product showcases, catalog generation, watermarking
+
 ## 🤝 Contributing
 
-## Contributors
+### Contributors
 
 - **[GrandpaEJ](https://github.com/GrandpaEJ)** - Feature requests and guidance
 
-## Contributing
+### How to Contribute
 
 Contributions are welcome! Areas where help is needed:
 
@@ -322,6 +269,8 @@ Contributions are welcome! Areas where help is needed:
 4. **Advanced Operations**: CSS-like filters, path operations, text rendering
 5. **Documentation**: More examples and tutorials
 6. **Testing**: Edge cases, compatibility tests, and performance benchmarks
+
+See **[Contributing Guide](docs/contributing.md)** for detailed information.
 
 ## 📄 License
 

@@ -1,108 +1,99 @@
 # Puhu Documentation
 
-Welcome to the comprehensive documentation for Puhu, a high-performance image processing library for Python with a Rust backend.
+Welcome to the Puhu documentation! This guide will help you get the most out of Puhu, the blazingly fast image processing library for Python.
 
-## 📚 Documentation Structure
+## 📚 Documentation Index
 
-### Getting Started
-- [Installation Guide](installation.md) - How to install and set up Puhu
-- [Quick Start](quickstart.md) - Get up and running in minutes
-- [Basic Usage](basic-usage.md) - Core concepts and basic operations
+### 🚀 Getting Started
+- **[Quick Start Guide](quickstart.md)** - Get up and running in minutes
+- **[Basic Usage](basic-usage.md)** - Core concepts and common patterns
+- **[Migration Guide](migration.md)** - Moving from Pillow to Puhu
 
-### Feature Documentation
-- [Image Operations](image-operations.md) - Core image manipulation functions
-- [Filters](filters.md) - All available image filters and effects
-- [CSS Filters](css-filters.md) - CSS-like filter effects
-- [Pixel Manipulation](pixel-manipulation.md) - Direct pixel access and analysis
-- [Drawing Operations](drawing.md) - Shape and text drawing capabilities
-- [Shadow Effects](shadows.md) - Drop shadows, inner shadows, and glow effects
-- [Compositing & Blending](compositing.md) - Advanced image compositing
-
-### Advanced Topics
-- [Performance Guide](performance.md) - Optimization tips and benchmarks
-- [API Reference](api-reference.md) - Complete API documentation
-- [Examples](examples.md) - Comprehensive examples and tutorials
-- [Migration Guide](migration.md) - Migrating from PIL/Pillow
-
-### Development
-- [Contributing](contributing.md) - How to contribute to Puhu
-- [Architecture](architecture.md) - Internal architecture and design
-- [Building from Source](building.md) - Development setup and building
-- [Testing](testing.md) - Running tests and adding new tests
-
-## 🚀 Quick Links
-
-- **[Installation](installation.md)** - Get Puhu installed
-- **[Quick Start](quickstart.md)** - Your first Puhu program
+### 📖 Reference & Examples
 - **[API Reference](api-reference.md)** - Complete method documentation
-- **[Examples](examples.md)** - Real-world usage examples
+- **[Examples](examples.md)** - Real-world usage examples and tutorials
+- **[Performance Guide](performance.md)** - Optimization techniques and best practices
 
-## 🎯 Feature Overview
+### 🤝 Contributing
+- **[Contributing Guide](contributing.md)** - How to contribute to Puhu
 
-Puhu provides a comprehensive set of image processing capabilities:
+## 🎯 Quick Navigation
 
-### Core Operations
-- Load, save, resize, crop, rotate images
-- Format conversion and channel manipulation
-- NumPy array integration
+### New to Puhu?
+Start with the **[Quick Start Guide](quickstart.md)** to install Puhu and run your first image processing operations.
 
-### Filters & Effects
-- Basic filters (blur, sharpen, edge detection, emboss)
-- CSS-like filters (sepia, grayscale, invert, hue rotation)
-- Brightness, contrast, and saturation adjustments
-- Shadow effects (drop shadow, inner shadow, glow)
+### Coming from Pillow?
+Check out the **[Migration Guide](migration.md)** for a smooth transition from Pillow to Puhu.
+
+### Looking for Examples?
+Browse the **[Examples](examples.md)** section for real-world usage patterns and creative applications.
+
+### Need Performance?
+Read the **[Performance Guide](performance.md)** to optimize your image processing workflows.
+
+### Want to Contribute?
+See the **[Contributing Guide](contributing.md)** to learn how you can help improve Puhu.
+
+## 🔍 What You'll Learn
+
+### Core Concepts
+- Image loading, saving, and format conversion
+- Basic transformations (resize, crop, rotate)
+- Color mode conversions and channel operations
+- Method chaining for efficient processing
 
 ### Advanced Features
-- Pixel-level manipulation and analysis
-- Drawing operations (shapes, lines, text)
-- Color analysis and replacement
-- Histogram generation and analysis
-- Compositing and blending operations
+- Built-in filters and effects
+- CSS-style image filters
+- Pixel manipulation and analysis
+- Drawing operations and compositing
+- Shadow effects and artistic filters
 
-### Performance
-- High-performance Rust backend
-- Memory-efficient processing
-- Thread-safe operations
-- Both method chaining and functional APIs
+### Performance Optimization
+- Batch processing techniques
+- Memory management strategies
+- Parallel processing approaches
+- Performance monitoring and profiling
 
-## 📖 Documentation Conventions
+### Real-World Applications
+- Photography enhancement workflows
+- Web development image optimization
+- Creative projects and artistic effects
+- Data visualization and infographics
+- E-commerce product image processing
 
-### Code Examples
-All code examples in this documentation are tested and working. They assume you have Puhu installed and imported:
+## 🚀 Quick Example
 
 ```python
 import puhu
 
-# Load an image
-img = puhu.open("example.jpg")
+# Load and enhance a photo
+img = puhu.open("photo.jpg")
+
+# Apply enhancements with method chaining
+enhanced = (img
+            .resize((800, 600))
+            .brightness(15)
+            .contrast(1.1)
+            .saturate(1.05)
+            .sharpen(1.2))
+
+# Save the result
+enhanced.save("enhanced_photo.jpg")
 ```
-
-### Method Signatures
-Methods are documented with their full signatures and parameter types:
-
-```python
-def resize(self, size: Tuple[int, int], resample: Optional[str] = None) -> Image:
-    """Resize image to specified dimensions."""
-```
-
-### Return Values
-All methods that return new images follow the immutable pattern - the original image is not modified.
 
 ## 🔗 External Resources
 
-- [GitHub Repository](https://github.com/bgunebakan/puhu)
-- [PyPI Package](https://pypi.org/project/puhu/)
-- [Issue Tracker](https://github.com/bgunebakan/puhu/issues)
+- **[GitHub Repository](https://github.com/bgunebakan/puhu)** - Source code and issues
+- **[PyPI Package](https://pypi.org/project/puhu/)** - Installation and releases
+- **[Pillow Documentation](https://pillow.readthedocs.io/)** - API compatibility reference
 
-## 📝 License
+## 📝 Documentation Feedback
 
-Puhu is licensed under the MIT License. See the [LICENSE](../LICENSE) file for details.
+Found an error or have suggestions for improving the documentation? Please:
 
-## 👥 Contributors
+1. **[Open an issue](https://github.com/bgunebakan/puhu/issues)** on GitHub
+2. **[Submit a pull request](https://github.com/bgunebakan/puhu/pulls)** with improvements
+3. **[Start a discussion](https://github.com/bgunebakan/puhu/discussions)** for questions
 
-- **[Bilal Tonga](https://github.com/bgunebakan)** - Original author and maintainer
-- **[GrandpaEJ](https://github.com/GrandpaEJ)** - Feature requests and guidance
-
----
-
-*This documentation is continuously updated. If you find any issues or have suggestions, please [open an issue](https://github.com/bgunebakan/puhu/issues).*
+Your feedback helps make Puhu better for everyone! 🦉
