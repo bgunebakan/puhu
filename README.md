@@ -251,12 +251,18 @@ pytest python/puhu/tests/
 
 ## 🤝 Contributing
 
+## Contributors
+
+- **[GrandpaEJ](https://github.com/GrandpaEJ)** - Feature requests and guidance
+
+## Contributing
+
 Contributions are welcome! Areas where help is needed:
 
-1. **Medium Priority Features**: `filter()`, `getpixel()`, `putpixel()`, `frombytes()`
+1. **Medium Priority Features**: `getpixel()`, `putpixel()`, `frombytes()`
 2. **Performance Optimization**: Further speed improvements and benchmarking
 3. **Format Support**: Additional image formats and metadata handling
-4. **Advanced Operations**: Image filters, transformations, and effects
+4. **Advanced Operations**: CSS-like filters, path operations, text rendering
 5. **Documentation**: More examples and tutorials
 6. **Testing**: Edge cases, compatibility tests, and performance benchmarks
 

@@ -522,3 +522,246 @@ class Image:
             and self.mode == other.mode
             and self.to_bytes() == other.to_bytes()
         )
+
+    # CSS-like filters
+    def sepia(self, amount=1.0):
+        """Apply sepia filter.
+
+        Args:
+            amount (float): Sepia amount (0.0 to 1.0)
+
+        Returns:
+            Image: New image with sepia effect
+        """
+        return Image(self._rust_image.sepia(amount))
+
+    def grayscale_filter(self, amount=1.0):
+        """Apply grayscale filter.
+
+        Args:
+            amount (float): Grayscale amount (0.0 to 1.0)
+
+        Returns:
+            Image: New image with grayscale effect
+        """
+        return Image(self._rust_image.grayscale_filter(amount))
+
+    def invert(self, amount=1.0):
+        """Apply invert filter.
+
+        Args:
+            amount (float): Invert amount (0.0 to 1.0)
+
+        Returns:
+            Image: New image with invert effect
+        """
+        return Image(self._rust_image.invert(amount))
+
+    def hue_rotate(self, degrees):
+        """Apply hue rotation filter.
+
+        Args:
+            degrees (float): Rotation in degrees
+
+        Returns:
+            Image: New image with rotated hue
+        """
+        return Image(self._rust_image.hue_rotate(degrees))
+
+    def saturate(self, amount=1.0):
+        """Apply saturation filter.
+
+        Args:
+            amount (float): Saturation amount (0.0 = grayscale, 1.0 = normal, >1.0 = more saturated)
+
+        Returns:
+            Image: New image with adjusted saturation
+        """
+        return Image(self._rust_image.saturate(amount))
+
+    # Pixel manipulation methods
+    def getpixel(self, x, y):
+        """Get pixel value at coordinates.
+
+        Args:
+            x (int): X coordinate
+            y (int): Y coordinate
+
+        Returns:
+            tuple: (R, G, B, A) pixel values
+        """
+        return self._rust_image.getpixel(x, y)
+
+    def putpixel(self, x, y, color):
+        """Set pixel value at coordinates.
+
+        Args:
+            x (int): X coordinate
+            y (int): Y coordinate
+            color (tuple): (R, G, B, A) color values
+
+        Returns:
+            Image: New image with modified pixel
+        """
+        return Image(self._rust_image.putpixel(x, y, color))
+
+    def histogram(self):
+        """Get image histogram.
+
+        Returns:
+            tuple: (R_hist, G_hist, B_hist, A_hist) histograms as lists
+        """
+        return self._rust_image.histogram()
+
+    def dominant_color(self):
+        """Get dominant color in image.
+
+        Returns:
+            tuple: (R, G, B, A) dominant color
+        """
+        return self._rust_image.dominant_color()
+
+    def average_color(self):
+        """Get average color in image.
+
+        Returns:
+            tuple: (R, G, B, A) average color
+        """
+        return self._rust_image.average_color()
+
+    def replace_color(self, target_color, replacement_color, tolerance=0):
+        """Replace pixels of one color with another.
+
+        Args:
+            target_color (tuple): (R, G, B, A) color to replace
+            replacement_color (tuple): (R, G, B, A) replacement color
+            tolerance (int): Color matching tolerance (0-255)
+
+        Returns:
+            Image: New image with replaced colors
+        """
+        return Image(self._rust_image.replace_color(target_color, replacement_color, tolerance))
+
+    def threshold(self, threshold_value):
+        """Apply threshold to create binary image.
+
+        Args:
+            threshold_value (int): Threshold value (0-255)
+
+        Returns:
+            Image: New binary image
+        """
+        return Image(self._rust_image.threshold(threshold_value))
+
+    def posterize(self, levels):
+        """Apply posterization effect.
+
+        Args:
+            levels (int): Number of color levels
+
+        Returns:
+            Image: New posterized image
+        """
+        return Image(self._rust_image.posterize(levels))
+
+    # Drawing methods
+    def draw_rectangle(self, x, y, width, height, color):
+        """Draw a filled rectangle.
+
+        Args:
+            x (int): X coordinate
+            y (int): Y coordinate
+            width (int): Rectangle width
+            height (int): Rectangle height
+            color (tuple): (R, G, B, A) color
+
+        Returns:
+            Image: New image with rectangle drawn
+        """
+        return Image(self._rust_image.draw_rectangle(x, y, width, height, color))
+
+    def draw_circle(self, center_x, center_y, radius, color):
+        """Draw a filled circle.
+
+        Args:
+            center_x (int): Center X coordinate
+            center_y (int): Center Y coordinate
+            radius (int): Circle radius
+            color (tuple): (R, G, B, A) color
+
+        Returns:
+            Image: New image with circle drawn
+        """
+        return Image(self._rust_image.draw_circle(center_x, center_y, radius, color))
+
+    def draw_line(self, x0, y0, x1, y1, color):
+        """Draw a line.
+
+        Args:
+            x0 (int): Start X coordinate
+            y0 (int): Start Y coordinate
+            x1 (int): End X coordinate
+            y1 (int): End Y coordinate
+            color (tuple): (R, G, B, A) color
+
+        Returns:
+            Image: New image with line drawn
+        """
+        return Image(self._rust_image.draw_line(x0, y0, x1, y1, color))
+
+    def draw_text(self, text, x, y, color, scale=1):
+        """Draw text using basic bitmap font.
+
+        Args:
+            text (str): Text to draw
+            x (int): X coordinate
+            y (int): Y coordinate
+            color (tuple): (R, G, B, A) color
+            scale (int): Text scale factor
+
+        Returns:
+            Image: New image with text drawn
+        """
+        return Image(self._rust_image.draw_text(text, x, y, color, scale))
+
+    # Shadow effects
+    def drop_shadow(self, offset_x, offset_y, blur_radius, shadow_color):
+        """Apply drop shadow effect.
+
+        Args:
+            offset_x (int): Shadow X offset
+            offset_y (int): Shadow Y offset
+            blur_radius (float): Shadow blur radius
+            shadow_color (tuple): (R, G, B, A) shadow color
+
+        Returns:
+            Image: New image with drop shadow
+        """
+        return Image(self._rust_image.drop_shadow(offset_x, offset_y, blur_radius, shadow_color))
+
+    def inner_shadow(self, offset_x, offset_y, blur_radius, shadow_color):
+        """Apply inner shadow effect.
+
+        Args:
+            offset_x (int): Shadow X offset
+            offset_y (int): Shadow Y offset
+            blur_radius (float): Shadow blur radius
+            shadow_color (tuple): (R, G, B, A) shadow color
+
+        Returns:
+            Image: New image with inner shadow
+        """
+        return Image(self._rust_image.inner_shadow(offset_x, offset_y, blur_radius, shadow_color))
+
+    def glow(self, blur_radius, glow_color, intensity=1.0):
+        """Apply glow effect.
+
+        Args:
+            blur_radius (float): Glow blur radius
+            glow_color (tuple): (R, G, B, A) glow color
+            intensity (float): Glow intensity
+
+        Returns:
+            Image: New image with glow effect
+        """
+        return Image(self._rust_image.glow(blur_radius, glow_color, intensity))

@@ -3,10 +3,15 @@ use pyo3::types::{PyBytes, PyType};
 use image::{DynamicImage, ImageFormat, ColorType, Rgba, Rgb};
 use std::io::Cursor;
 use std::path::PathBuf;
+use crate::blending::{self, BlendMode, GradientDirection};
+use crate::css_filters;
+use crate::drawing;
 use crate::errors::PuhuError;
 use crate::filters;
 use crate::formats;
 use crate::operations;
+use crate::pixels;
+use crate::shadows;
 use numpy::{PyArray2, PyArray3, PyArrayMethods, PyUntypedArrayMethods};
 
 /// Convert ColorType to PIL-compatible mode string
@@ -91,7 +96,6 @@ impl PyImage {
     }
 
     #[classmethod]
-    #[pyo3(signature = (mode, size, color=None))]
     fn new(_cls: &Bound<'_, PyType>, mode: &str, size: (u32, u32), color: Option<(u8, u8, u8, u8)>) -> PyResult<Self> {
         let (width, height) = size;
         
@@ -171,8 +175,7 @@ impl PyImage {
     }
 
     #[classmethod]
-    #[pyo3(signature = (array, mode=None))]
-    fn fromarray(_cls: &Bound<'_, PyType>, array: &Bound<'_, PyAny>, mode: Option<&str>) -> PyResult<Self> {
+    fn fromarray(_cls: &Bound<'_, PyType>, array: &Bound<'_, PyAny>, _mode: Option<&str>) -> PyResult<Self> {
         // Try to handle 2D array (grayscale)
         if let Ok(array_2d) = array.downcast::<PyArray2<u8>>() {
             let readonly = array_2d.readonly();
@@ -254,7 +257,6 @@ impl PyImage {
         }
     }
 
-    #[pyo3(signature = (path_or_buffer, format=None))]
     fn save(&mut self, path_or_buffer: &Bound<'_, PyAny>, format: Option<String>) -> PyResult<()> {
         if let Ok(path) = path_or_buffer.extract::<String>() {
             // Save to file path
@@ -284,7 +286,6 @@ impl PyImage {
         }
     }
 
-    #[pyo3(signature = (size, resample=None))]
     fn resize(&mut self, size: (u32, u32), resample: Option<String>) -> PyResult<Self> {
         let (width, height) = size;
         let format = self.format;
@@ -579,7 +580,6 @@ impl PyImage {
         result.map_err(|e| e.into())
     }
 
-    #[pyo3(signature = (other, position=None, mask=None))]
     fn paste(&mut self, other: &mut Self, position: Option<(i32, i32)>, mask: Option<Self>) -> PyResult<Self> {
         let format = self.format;
         let base_image = self.get_image()?;
@@ -718,7 +718,6 @@ impl PyImage {
         })
     }
 
-    #[pyo3(signature = (radius))]
     fn blur(&mut self, radius: f32) -> PyResult<Self> {
         let format = self.format;
         let image = self.get_image()?;
@@ -733,7 +732,6 @@ impl PyImage {
         }).map_err(|e| e.into())
     }
 
-    #[pyo3(signature = (strength=1.0))]
     fn sharpen(&mut self, strength: f32) -> PyResult<Self> {
         let format = self.format;
         let image = self.get_image()?;
@@ -776,7 +774,6 @@ impl PyImage {
         }).map_err(|e| e.into())
     }
 
-    #[pyo3(signature = (adjustment))]
     fn brightness(&mut self, adjustment: i16) -> PyResult<Self> {
         let format = self.format;
         let image = self.get_image()?;
@@ -791,7 +788,6 @@ impl PyImage {
         }).map_err(|e| e.into())
     }
 
-    #[pyo3(signature = (factor))]
     fn contrast(&mut self, factor: f32) -> PyResult<Self> {
         let format = self.format;
         let image = self.get_image()?;
@@ -802,6 +798,275 @@ impl PyImage {
             })
         }).map(|filtered| PyImage {
             lazy_image: LazyImage::Loaded(filtered),
+            format,
+        }).map_err(|e| e.into())
+    }
+
+    // CSS-like filters
+    fn sepia(&mut self, amount: f32) -> PyResult<Self> {
+        let format = self.format;
+        let image = self.get_image()?;
+
+        Python::with_gil(|py| {
+            py.allow_threads(|| {
+                css_filters::sepia(image, amount)
+            })
+        }).map(|filtered| PyImage {
+            lazy_image: LazyImage::Loaded(filtered),
+            format,
+        }).map_err(|e| e.into())
+    }
+
+    fn grayscale_filter(&mut self, amount: f32) -> PyResult<Self> {
+        let format = self.format;
+        let image = self.get_image()?;
+
+        Python::with_gil(|py| {
+            py.allow_threads(|| {
+                css_filters::grayscale(image, amount)
+            })
+        }).map(|filtered| PyImage {
+            lazy_image: LazyImage::Loaded(filtered),
+            format,
+        }).map_err(|e| e.into())
+    }
+
+    fn invert(&mut self, amount: f32) -> PyResult<Self> {
+        let format = self.format;
+        let image = self.get_image()?;
+
+        Python::with_gil(|py| {
+            py.allow_threads(|| {
+                css_filters::invert(image, amount)
+            })
+        }).map(|filtered| PyImage {
+            lazy_image: LazyImage::Loaded(filtered),
+            format,
+        }).map_err(|e| e.into())
+    }
+
+    fn hue_rotate(&mut self, degrees: f32) -> PyResult<Self> {
+        let format = self.format;
+        let image = self.get_image()?;
+
+        Python::with_gil(|py| {
+            py.allow_threads(|| {
+                css_filters::hue_rotate(image, degrees)
+            })
+        }).map(|filtered| PyImage {
+            lazy_image: LazyImage::Loaded(filtered),
+            format,
+        }).map_err(|e| e.into())
+    }
+
+    fn saturate(&mut self, amount: f32) -> PyResult<Self> {
+        let format = self.format;
+        let image = self.get_image()?;
+
+        Python::with_gil(|py| {
+            py.allow_threads(|| {
+                css_filters::saturate(image, amount)
+            })
+        }).map(|filtered| PyImage {
+            lazy_image: LazyImage::Loaded(filtered),
+            format,
+        }).map_err(|e| e.into())
+    }
+
+    // Pixel manipulation methods
+    fn getpixel(&mut self, x: u32, y: u32) -> PyResult<(u8, u8, u8, u8)> {
+        let image = self.get_image()?;
+
+        Python::with_gil(|py| {
+            py.allow_threads(|| {
+                pixels::get_pixel(image, x, y)
+            })
+        }).map_err(|e| e.into())
+    }
+
+    fn putpixel(&mut self, x: u32, y: u32, color: (u8, u8, u8, u8)) -> PyResult<Self> {
+        let format = self.format;
+        let image = self.get_image()?;
+
+        Python::with_gil(|py| {
+            py.allow_threads(|| {
+                pixels::put_pixel(image, x, y, color)
+            })
+        }).map(|result| PyImage {
+            lazy_image: LazyImage::Loaded(result),
+            format,
+        }).map_err(|e| e.into())
+    }
+
+    fn histogram(&mut self) -> PyResult<(Vec<u32>, Vec<u32>, Vec<u32>, Vec<u32>)> {
+        let image = self.get_image()?;
+
+        Python::with_gil(|py| {
+            py.allow_threads(|| {
+                pixels::histogram(image)
+            })
+        }).map(|(r, g, b, a)| (r.to_vec(), g.to_vec(), b.to_vec(), a.to_vec()))
+        .map_err(|e| e.into())
+    }
+
+    fn dominant_color(&mut self) -> PyResult<(u8, u8, u8, u8)> {
+        let image = self.get_image()?;
+
+        Python::with_gil(|py| {
+            py.allow_threads(|| {
+                pixels::dominant_color(image)
+            })
+        }).map_err(|e| e.into())
+    }
+
+    fn average_color(&mut self) -> PyResult<(u8, u8, u8, u8)> {
+        let image = self.get_image()?;
+
+        Python::with_gil(|py| {
+            py.allow_threads(|| {
+                pixels::average_color(image)
+            })
+        }).map_err(|e| e.into())
+    }
+
+    fn replace_color(&mut self, target_color: (u8, u8, u8, u8), replacement_color: (u8, u8, u8, u8), tolerance: u8) -> PyResult<Self> {
+        let format = self.format;
+        let image = self.get_image()?;
+
+        Python::with_gil(|py| {
+            py.allow_threads(|| {
+                pixels::replace_color(image, target_color, replacement_color, tolerance)
+            })
+        }).map(|result| PyImage {
+            lazy_image: LazyImage::Loaded(result),
+            format,
+        }).map_err(|e| e.into())
+    }
+
+    fn threshold(&mut self, threshold_value: u8) -> PyResult<Self> {
+        let format = self.format;
+        let image = self.get_image()?;
+
+        Python::with_gil(|py| {
+            py.allow_threads(|| {
+                pixels::threshold(image, threshold_value)
+            })
+        }).map(|result| PyImage {
+            lazy_image: LazyImage::Loaded(result),
+            format,
+        }).map_err(|e| e.into())
+    }
+
+    fn posterize(&mut self, levels: u8) -> PyResult<Self> {
+        let format = self.format;
+        let image = self.get_image()?;
+
+        Python::with_gil(|py| {
+            py.allow_threads(|| {
+                pixels::posterize(image, levels)
+            })
+        }).map(|result| PyImage {
+            lazy_image: LazyImage::Loaded(result),
+            format,
+        }).map_err(|e| e.into())
+    }
+
+    // Drawing methods
+    fn draw_rectangle(&mut self, x: i32, y: i32, width: u32, height: u32, color: (u8, u8, u8, u8)) -> PyResult<Self> {
+        let format = self.format;
+        let image = self.get_image()?;
+
+        Python::with_gil(|py| {
+            py.allow_threads(|| {
+                drawing::draw_rectangle(image, x, y, width, height, color)
+            })
+        }).map(|result| PyImage {
+            lazy_image: LazyImage::Loaded(result),
+            format,
+        }).map_err(|e| e.into())
+    }
+
+    fn draw_circle(&mut self, center_x: i32, center_y: i32, radius: u32, color: (u8, u8, u8, u8)) -> PyResult<Self> {
+        let format = self.format;
+        let image = self.get_image()?;
+
+        Python::with_gil(|py| {
+            py.allow_threads(|| {
+                drawing::draw_circle(image, center_x, center_y, radius, color)
+            })
+        }).map(|result| PyImage {
+            lazy_image: LazyImage::Loaded(result),
+            format,
+        }).map_err(|e| e.into())
+    }
+
+    fn draw_line(&mut self, x0: i32, y0: i32, x1: i32, y1: i32, color: (u8, u8, u8, u8)) -> PyResult<Self> {
+        let format = self.format;
+        let image = self.get_image()?;
+
+        Python::with_gil(|py| {
+            py.allow_threads(|| {
+                drawing::draw_line(image, x0, y0, x1, y1, color)
+            })
+        }).map(|result| PyImage {
+            lazy_image: LazyImage::Loaded(result),
+            format,
+        }).map_err(|e| e.into())
+    }
+
+    fn draw_text(&mut self, text: &str, x: i32, y: i32, color: (u8, u8, u8, u8), scale: u32) -> PyResult<Self> {
+        let format = self.format;
+        let image = self.get_image()?;
+
+        Python::with_gil(|py| {
+            py.allow_threads(|| {
+                drawing::draw_text(image, text, x, y, color, scale)
+            })
+        }).map(|result| PyImage {
+            lazy_image: LazyImage::Loaded(result),
+            format,
+        }).map_err(|e| e.into())
+    }
+
+    // Shadow effects
+    fn drop_shadow(&mut self, offset_x: i32, offset_y: i32, blur_radius: f32, shadow_color: (u8, u8, u8, u8)) -> PyResult<Self> {
+        let format = self.format;
+        let image = self.get_image()?;
+
+        Python::with_gil(|py| {
+            py.allow_threads(|| {
+                shadows::drop_shadow(image, offset_x, offset_y, blur_radius, shadow_color)
+            })
+        }).map(|result| PyImage {
+            lazy_image: LazyImage::Loaded(result),
+            format,
+        }).map_err(|e| e.into())
+    }
+
+    fn inner_shadow(&mut self, offset_x: i32, offset_y: i32, blur_radius: f32, shadow_color: (u8, u8, u8, u8)) -> PyResult<Self> {
+        let format = self.format;
+        let image = self.get_image()?;
+
+        Python::with_gil(|py| {
+            py.allow_threads(|| {
+                shadows::inner_shadow(image, offset_x, offset_y, blur_radius, shadow_color)
+            })
+        }).map(|result| PyImage {
+            lazy_image: LazyImage::Loaded(result),
+            format,
+        }).map_err(|e| e.into())
+    }
+
+    fn glow(&mut self, blur_radius: f32, glow_color: (u8, u8, u8, u8), intensity: f32) -> PyResult<Self> {
+        let format = self.format;
+        let image = self.get_image()?;
+
+        Python::with_gil(|py| {
+            py.allow_threads(|| {
+                shadows::glow(image, blur_radius, glow_color, intensity)
+            })
+        }).map(|result| PyImage {
+            lazy_image: LazyImage::Loaded(result),
             format,
         }).map_err(|e| e.into())
     }
