@@ -3,10 +3,17 @@ Python Image class that wraps the Rust Puhu implementation
 """
 
 from pathlib import Path
-from typing import Any, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 from ._core import Image as RustImage
 from .enums import Resampling, Transpose
+
+try:
+    import numpy as np
+    HAS_NUMPY = True
+except ImportError:
+    np = None
+    HAS_NUMPY = False
 
 
 class Image:
@@ -79,6 +86,47 @@ class Image:
         rgba_color = cls._parse_color(color, mode)
 
         rust_image = RustImage.new(mode, size, rgba_color)
+        return cls(rust_image)
+
+    @classmethod
+    def fromarray(
+        cls,
+        obj: Any,
+        mode: Optional[str] = None,
+    ) -> "Image":
+        """
+        Create an image from a numpy array.
+
+        Args:
+            obj: Numpy array with shape (H, W) for grayscale or (H, W, C) for RGB/RGBA
+            mode: Optional mode hint (not currently used)
+
+        Returns:
+            New Image instance
+
+        Raises:
+            ImportError: If numpy is not available
+            ValueError: If array has unsupported shape or dtype
+        """
+        if not HAS_NUMPY:
+            raise ImportError("numpy is required for fromarray(). Install with: pip install numpy")
+
+        if not isinstance(obj, np.ndarray):
+            raise ValueError("Expected numpy array")
+
+        # Convert to uint8 if needed
+        if obj.dtype != np.uint8:
+            if obj.dtype in [np.float32, np.float64]:
+                # Assume values are in [0, 1] range
+                obj = (obj * 255).astype(np.uint8)
+            else:
+                obj = obj.astype(np.uint8)
+
+        # Ensure array is contiguous
+        if not obj.flags.c_contiguous:
+            obj = np.ascontiguousarray(obj)
+
+        rust_image = RustImage.fromarray(obj, mode)
         return cls(rust_image)
 
     @staticmethod
@@ -286,6 +334,146 @@ class Image:
     def to_bytes(self) -> bytes:
         """Get the raw pixel data as bytes."""
         return self._rust_image.to_bytes()
+
+    def convert(self, mode: str) -> "Image":
+        """
+        Convert the image to a different mode.
+
+        Args:
+            mode: Target mode (e.g., 'RGB', 'L', 'RGBA', 'LA')
+
+        Returns:
+            New converted Image instance
+        """
+        rust_image = self._rust_image.convert(mode)
+        return Image(rust_image)
+
+    def split(self) -> List["Image"]:
+        """
+        Split the image into individual channel images.
+
+        Returns:
+            List of Image instances, one for each channel
+            - RGB images return [R, G, B]
+            - RGBA images return [R, G, B, A]
+            - Grayscale images return [L]
+            - LA images return [L, A]
+        """
+        rust_images = self._rust_image.split()
+        return [Image(rust_img) for rust_img in rust_images]
+
+    def paste(
+        self,
+        im: "Image",
+        box: Optional[Union[Tuple[int, int], Tuple[int, int, int, int]]] = None,
+        mask: Optional["Image"] = None,
+    ) -> "Image":
+        """
+        Paste another image onto this image.
+
+        Args:
+            im: Image to paste
+            box: Position to paste at. Can be:
+                - (x, y) tuple for position
+                - (x, y, x2, y2) tuple for position and size (size ignored)
+                - None for (0, 0)
+            mask: Optional mask image for alpha blending
+
+        Returns:
+            New Image instance with the pasted content
+        """
+        # Parse position from box parameter
+        if box is None:
+            position = (0, 0)
+        elif len(box) == 2:
+            position = box
+        elif len(box) == 4:
+            position = (box[0], box[1])  # Ignore size for now
+        else:
+            raise ValueError("box must be a 2-tuple (x, y) or 4-tuple (x, y, x2, y2)")
+
+        # Get rust mask image if provided
+        rust_mask = mask._rust_image if mask is not None else None
+
+        rust_image = self._rust_image.paste(im._rust_image, position, rust_mask)
+        return Image(rust_image)
+
+    def blur(self, radius: float) -> "Image":
+        """
+        Apply Gaussian blur to the image.
+
+        Args:
+            radius: Blur radius (higher values = more blur)
+
+        Returns:
+            New blurred Image instance
+        """
+        rust_image = self._rust_image.blur(radius)
+        return Image(rust_image)
+
+    def sharpen(self, strength: float = 1.0) -> "Image":
+        """
+        Apply sharpening filter to the image.
+
+        Args:
+            strength: Sharpening strength (default: 1.0)
+
+        Returns:
+            New sharpened Image instance
+        """
+        rust_image = self._rust_image.sharpen(strength)
+        return Image(rust_image)
+
+    def edge_detect(self) -> "Image":
+        """
+        Apply edge detection filter (Sobel operator).
+
+        Returns:
+            New grayscale Image instance with edges highlighted
+        """
+        rust_image = self._rust_image.edge_detect()
+        return Image(rust_image)
+
+    def emboss(self) -> "Image":
+        """
+        Apply emboss filter to the image.
+
+        Returns:
+            New embossed Image instance
+        """
+        rust_image = self._rust_image.emboss()
+        return Image(rust_image)
+
+    def brightness(self, adjustment: int) -> "Image":
+        """
+        Adjust image brightness.
+
+        Args:
+            adjustment: Brightness adjustment (-255 to 255)
+                       Positive values brighten, negative values darken
+
+        Returns:
+            New Image instance with adjusted brightness
+        """
+        rust_image = self._rust_image.brightness(adjustment)
+        return Image(rust_image)
+
+    def contrast(self, factor: float) -> "Image":
+        """
+        Adjust image contrast.
+
+        Args:
+            factor: Contrast factor
+                   1.0 = no change
+                   > 1.0 = increase contrast
+                   < 1.0 = decrease contrast
+                   0.0 = gray image
+
+        Returns:
+            New Image instance with adjusted contrast
+        """
+        rust_image = self._rust_image.contrast(factor)
+        return Image(rust_image)
 
     # Properties
     @property

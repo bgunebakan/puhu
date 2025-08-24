@@ -1,11 +1,13 @@
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyType};
-use image::{DynamicImage, ImageFormat, ColorType};
+use image::{DynamicImage, ImageFormat, ColorType, Rgba, Rgb};
 use std::io::Cursor;
 use std::path::PathBuf;
 use crate::errors::PuhuError;
+use crate::filters;
 use crate::formats;
 use crate::operations;
+use numpy::{PyArray2, PyArray3, PyArrayMethods, PyUntypedArrayMethods};
 
 /// Convert ColorType to PIL-compatible mode string
 fn color_type_to_mode_string(color_type: ColorType) -> String {
@@ -49,7 +51,7 @@ impl LazyImage {
             }
             LazyImage::Bytes { data } => {
                 let cursor = Cursor::new(data);
-                let reader = image::io::Reader::new(cursor).with_guessed_format()
+                let reader = image::ImageReader::new(cursor).with_guessed_format()
                     .map_err(|e| PuhuError::Io(e))?;
                 let img = reader.decode()
                     .map_err(|e| PuhuError::ImageError(e))?;
@@ -63,6 +65,7 @@ impl LazyImage {
     }
 }
 
+#[derive(Clone)]
 #[pyclass(name = "Image")]
 pub struct PyImage {
     lazy_image: LazyImage,
@@ -88,6 +91,7 @@ impl PyImage {
     }
 
     #[classmethod]
+    #[pyo3(signature = (mode, size, color=None))]
     fn new(_cls: &Bound<'_, PyType>, mode: &str, size: (u32, u32), color: Option<(u8, u8, u8, u8)>) -> PyResult<Self> {
         let (width, height) = size;
         
@@ -141,9 +145,9 @@ impl PyImage {
             // Store path for lazy loading
             let path_buf = PathBuf::from(&path);
             let format = ImageFormat::from_path(&path).ok();
-            Ok(PyImage { 
+            Ok(PyImage {
                 lazy_image: LazyImage::Path { path: path_buf },
-                format 
+                format
             })
         } else if let Ok(bytes) = path_or_bytes.downcast::<PyBytes>() {
             // Store bytes for lazy loading
@@ -151,13 +155,13 @@ impl PyImage {
             // Try to guess format from bytes header
             let format = {
                 let cursor = Cursor::new(&data);
-                image::io::Reader::new(cursor).with_guessed_format()
+                image::ImageReader::new(cursor).with_guessed_format()
                     .ok()
                     .and_then(|r| r.format())
             };
-            Ok(PyImage { 
+            Ok(PyImage {
                 lazy_image: LazyImage::Bytes { data },
-                format 
+                format
             })
         } else {
             Err(PuhuError::InvalidOperation(
@@ -166,6 +170,91 @@ impl PyImage {
         }
     }
 
+    #[classmethod]
+    #[pyo3(signature = (array, mode=None))]
+    fn fromarray(_cls: &Bound<'_, PyType>, array: &Bound<'_, PyAny>, mode: Option<&str>) -> PyResult<Self> {
+        // Try to handle 2D array (grayscale)
+        if let Ok(array_2d) = array.downcast::<PyArray2<u8>>() {
+            let readonly = array_2d.readonly();
+            let shape = readonly.shape();
+            let height = shape[0] as u32;
+            let width = shape[1] as u32;
+
+            let data: Vec<u8> = readonly.as_slice()?.to_vec();
+
+            let image = image::GrayImage::from_raw(width, height, data)
+                .ok_or_else(|| PuhuError::InvalidOperation(
+                    "Failed to create image from array data".to_string()
+                ))?;
+
+            return Ok(PyImage {
+                lazy_image: LazyImage::Loaded(DynamicImage::ImageLuma8(image)),
+                format: None,
+            });
+        }
+
+        // Try to handle 3D array (RGB/RGBA)
+        if let Ok(array_3d) = array.downcast::<PyArray3<u8>>() {
+            let readonly = array_3d.readonly();
+            let shape = readonly.shape();
+            let height = shape[0] as u32;
+            let width = shape[1] as u32;
+            let channels = shape[2];
+
+            let data = readonly.as_slice()?;
+
+            match channels {
+                3 => {
+                    // RGB image
+                    let mut rgb_data = Vec::with_capacity((width * height * 3) as usize);
+                    for i in 0..(width * height) as usize {
+                        rgb_data.push(data[i * 3]);     // R
+                        rgb_data.push(data[i * 3 + 1]); // G
+                        rgb_data.push(data[i * 3 + 2]); // B
+                    }
+
+                    let image = image::RgbImage::from_raw(width, height, rgb_data)
+                        .ok_or_else(|| PuhuError::InvalidOperation(
+                            "Failed to create RGB image from array data".to_string()
+                        ))?;
+
+                    Ok(PyImage {
+                        lazy_image: LazyImage::Loaded(DynamicImage::ImageRgb8(image)),
+                        format: None,
+                    })
+                }
+                4 => {
+                    // RGBA image
+                    let mut rgba_data = Vec::with_capacity((width * height * 4) as usize);
+                    for i in 0..(width * height) as usize {
+                        rgba_data.push(data[i * 4]);     // R
+                        rgba_data.push(data[i * 4 + 1]); // G
+                        rgba_data.push(data[i * 4 + 2]); // B
+                        rgba_data.push(data[i * 4 + 3]); // A
+                    }
+
+                    let image = image::RgbaImage::from_raw(width, height, rgba_data)
+                        .ok_or_else(|| PuhuError::InvalidOperation(
+                            "Failed to create RGBA image from array data".to_string()
+                        ))?;
+
+                    Ok(PyImage {
+                        lazy_image: LazyImage::Loaded(DynamicImage::ImageRgba8(image)),
+                        format: None,
+                    })
+                }
+                _ => Err(PuhuError::InvalidOperation(
+                    format!("Unsupported number of channels: {}. Expected 3 (RGB) or 4 (RGBA)", channels)
+                ).into())
+            }
+        } else {
+            Err(PuhuError::InvalidOperation(
+                "Expected numpy array with shape (H, W) for grayscale or (H, W, C) for RGB/RGBA".to_string()
+            ).into())
+        }
+    }
+
+    #[pyo3(signature = (path_or_buffer, format=None))]
     fn save(&mut self, path_or_buffer: &Bound<'_, PyAny>, format: Option<String>) -> PyResult<()> {
         if let Ok(path) = path_or_buffer.extract::<String>() {
             // Save to file path
@@ -195,6 +284,7 @@ impl PyImage {
         }
     }
 
+    #[pyo3(signature = (size, resample=None))]
     fn resize(&mut self, size: (u32, u32), resample: Option<String>) -> PyResult<Self> {
         let (width, height) = size;
         let format = self.format;
@@ -347,6 +437,373 @@ impl PyImage {
             lazy_image: self.lazy_image.clone(),
             format: self.format,
         }
+    }
+
+    fn convert(&mut self, mode: &str) -> PyResult<Self> {
+        let format = self.format;
+        let image = self.get_image()?;
+
+        // If already in target mode, return a copy
+        let current_mode = color_type_to_mode_string(image.color());
+        if current_mode == mode {
+            return Ok(PyImage {
+                lazy_image: LazyImage::Loaded(image.clone()),
+                format,
+            });
+        }
+
+        let converted = Python::with_gil(|py| {
+            py.allow_threads(|| {
+                match mode {
+                    "L" => {
+                        // Convert to grayscale
+                        Ok(DynamicImage::ImageLuma8(image.to_luma8()))
+                    }
+                    "LA" => {
+                        // Convert to grayscale with alpha
+                        Ok(DynamicImage::ImageLumaA8(image.to_luma_alpha8()))
+                    }
+                    "RGB" => {
+                        // Convert to RGB
+                        Ok(DynamicImage::ImageRgb8(image.to_rgb8()))
+                    }
+                    "RGBA" => {
+                        // Convert to RGBA
+                        Ok(DynamicImage::ImageRgba8(image.to_rgba8()))
+                    }
+                    _ => Err(PuhuError::InvalidOperation(
+                        format!("Unsupported conversion mode: {}", mode)
+                    )),
+                }
+            })
+        })?;
+
+        Ok(PyImage {
+            lazy_image: LazyImage::Loaded(converted),
+            format,
+        })
+    }
+
+    fn split(&mut self) -> PyResult<Vec<Self>> {
+        let format = self.format;
+        let image = self.get_image()?;
+
+        let result = Python::with_gil(|py| {
+            py.allow_threads(|| {
+                match image {
+                    DynamicImage::ImageRgb8(rgb_img) => {
+                        let (width, height) = rgb_img.dimensions();
+                        let mut channels = Vec::new();
+
+                        // Extract R, G, B channels
+                        for channel_idx in 0..3 {
+                            let mut channel_data = Vec::with_capacity((width * height) as usize);
+                            for pixel in rgb_img.pixels() {
+                                channel_data.push(pixel.0[channel_idx]);
+                            }
+
+                            let channel_img = image::GrayImage::from_raw(width, height, channel_data)
+                                .ok_or_else(|| PuhuError::InvalidOperation(
+                                    "Failed to create channel image".to_string()
+                                ))?;
+
+                            channels.push(PyImage {
+                                lazy_image: LazyImage::Loaded(DynamicImage::ImageLuma8(channel_img)),
+                                format,
+                            });
+                        }
+
+                        Ok(channels)
+                    }
+                    DynamicImage::ImageRgba8(rgba_img) => {
+                        let (width, height) = rgba_img.dimensions();
+                        let mut channels = Vec::new();
+
+                        // Extract R, G, B, A channels
+                        for channel_idx in 0..4 {
+                            let mut channel_data = Vec::with_capacity((width * height) as usize);
+                            for pixel in rgba_img.pixels() {
+                                channel_data.push(pixel.0[channel_idx]);
+                            }
+
+                            let channel_img = image::GrayImage::from_raw(width, height, channel_data)
+                                .ok_or_else(|| PuhuError::InvalidOperation(
+                                    "Failed to create channel image".to_string()
+                                ))?;
+
+                            channels.push(PyImage {
+                                lazy_image: LazyImage::Loaded(DynamicImage::ImageLuma8(channel_img)),
+                                format,
+                            });
+                        }
+
+                        Ok(channels)
+                    }
+                    DynamicImage::ImageLuma8(_) => {
+                        // Grayscale image - return single channel
+                        Ok(vec![PyImage {
+                            lazy_image: LazyImage::Loaded(image.clone()),
+                            format,
+                        }])
+                    }
+                    DynamicImage::ImageLumaA8(la_img) => {
+                        let (width, height) = la_img.dimensions();
+                        let mut channels = Vec::new();
+
+                        // Extract L, A channels
+                        for channel_idx in 0..2 {
+                            let mut channel_data = Vec::with_capacity((width * height) as usize);
+                            for pixel in la_img.pixels() {
+                                channel_data.push(pixel.0[channel_idx]);
+                            }
+
+                            let channel_img = image::GrayImage::from_raw(width, height, channel_data)
+                                .ok_or_else(|| PuhuError::InvalidOperation(
+                                    "Failed to create channel image".to_string()
+                                ))?;
+
+                            channels.push(PyImage {
+                                lazy_image: LazyImage::Loaded(DynamicImage::ImageLuma8(channel_img)),
+                                format,
+                            });
+                        }
+
+                        Ok(channels)
+                    }
+                    _ => Err(PuhuError::InvalidOperation(
+                        "Unsupported image format for channel splitting".to_string()
+                    )),
+                }
+            })
+        });
+        result.map_err(|e| e.into())
+    }
+
+    #[pyo3(signature = (other, position=None, mask=None))]
+    fn paste(&mut self, other: &mut Self, position: Option<(i32, i32)>, mask: Option<Self>) -> PyResult<Self> {
+        let format = self.format;
+        let base_image = self.get_image()?;
+        let paste_image = other.get_image()?;
+
+        let (paste_x, paste_y) = position.unwrap_or((0, 0));
+
+        // Get mask image if provided
+        let mask_image = if let Some(mut mask_img) = mask {
+            Some(mask_img.get_image()?.clone())
+        } else {
+            None
+        };
+
+        Python::with_gil(|py| {
+            py.allow_threads(|| {
+                // Create a mutable copy of the base image
+                let mut result = base_image.clone();
+
+                match (&mut result, paste_image) {
+                    (DynamicImage::ImageRgb8(base), DynamicImage::ImageRgb8(paste)) => {
+                        let (base_width, base_height) = base.dimensions();
+                        let (paste_width, paste_height) = paste.dimensions();
+
+                        for y in 0..paste_height {
+                            for x in 0..paste_width {
+                                let target_x = paste_x + x as i32;
+                                let target_y = paste_y + y as i32;
+
+                                // Check bounds
+                                if target_x >= 0 && target_y >= 0
+                                    && (target_x as u32) < base_width
+                                    && (target_y as u32) < base_height {
+
+                                    let pixel = paste.get_pixel(x, y);
+
+                                    // Apply mask if provided
+                                    if let Some(ref mask) = mask_image {
+                                        if let DynamicImage::ImageLuma8(mask_gray) = mask {
+                                            let mask_pixel = mask_gray.get_pixel(x, y);
+                                            let alpha = mask_pixel.0[0] as f32 / 255.0;
+
+                                            if alpha > 0.0 {
+                                                let base_pixel = base.get_pixel(target_x as u32, target_y as u32);
+                                                let blended = Rgb([
+                                                    ((1.0 - alpha) * base_pixel.0[0] as f32 + alpha * pixel.0[0] as f32) as u8,
+                                                    ((1.0 - alpha) * base_pixel.0[1] as f32 + alpha * pixel.0[1] as f32) as u8,
+                                                    ((1.0 - alpha) * base_pixel.0[2] as f32 + alpha * pixel.0[2] as f32) as u8,
+                                                ]);
+                                                base.put_pixel(target_x as u32, target_y as u32, blended);
+                                            }
+                                        }
+                                    } else {
+                                        base.put_pixel(target_x as u32, target_y as u32, *pixel);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    (DynamicImage::ImageRgba8(base), DynamicImage::ImageRgba8(paste)) => {
+                        let (base_width, base_height) = base.dimensions();
+                        let (paste_width, paste_height) = paste.dimensions();
+
+                        for y in 0..paste_height {
+                            for x in 0..paste_width {
+                                let target_x = paste_x + x as i32;
+                                let target_y = paste_y + y as i32;
+
+                                // Check bounds
+                                if target_x >= 0 && target_y >= 0
+                                    && (target_x as u32) < base_width
+                                    && (target_y as u32) < base_height {
+
+                                    let pixel = paste.get_pixel(x, y);
+                                    let alpha = pixel.0[3] as f32 / 255.0;
+
+                                    if alpha > 0.0 {
+                                        let base_pixel = base.get_pixel(target_x as u32, target_y as u32);
+                                        let blended = Rgba([
+                                            ((1.0 - alpha) * base_pixel.0[0] as f32 + alpha * pixel.0[0] as f32) as u8,
+                                            ((1.0 - alpha) * base_pixel.0[1] as f32 + alpha * pixel.0[1] as f32) as u8,
+                                            ((1.0 - alpha) * base_pixel.0[2] as f32 + alpha * pixel.0[2] as f32) as u8,
+                                            255, // Keep base alpha
+                                        ]);
+                                        base.put_pixel(target_x as u32, target_y as u32, blended);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    // Convert images to compatible formats if needed
+                    _ => {
+                        let base_rgba = result.to_rgba8();
+                        let paste_rgba = paste_image.to_rgba8();
+                        let mut result_rgba = base_rgba;
+
+                        let (base_width, base_height) = result_rgba.dimensions();
+                        let (paste_width, paste_height) = paste_rgba.dimensions();
+
+                        for y in 0..paste_height {
+                            for x in 0..paste_width {
+                                let target_x = paste_x + x as i32;
+                                let target_y = paste_y + y as i32;
+
+                                // Check bounds
+                                if target_x >= 0 && target_y >= 0
+                                    && (target_x as u32) < base_width
+                                    && (target_y as u32) < base_height {
+
+                                    let pixel = paste_rgba.get_pixel(x, y);
+                                    let alpha = pixel.0[3] as f32 / 255.0;
+
+                                    if alpha > 0.0 {
+                                        let base_pixel = result_rgba.get_pixel(target_x as u32, target_y as u32);
+                                        let blended = Rgba([
+                                            ((1.0 - alpha) * base_pixel.0[0] as f32 + alpha * pixel.0[0] as f32) as u8,
+                                            ((1.0 - alpha) * base_pixel.0[1] as f32 + alpha * pixel.0[1] as f32) as u8,
+                                            ((1.0 - alpha) * base_pixel.0[2] as f32 + alpha * pixel.0[2] as f32) as u8,
+                                            base_pixel.0[3], // Keep base alpha
+                                        ]);
+                                        result_rgba.put_pixel(target_x as u32, target_y as u32, blended);
+                                    }
+                                }
+                            }
+                        }
+
+                        result = DynamicImage::ImageRgba8(result_rgba);
+                    }
+                }
+
+                Ok(PyImage {
+                    lazy_image: LazyImage::Loaded(result),
+                    format,
+                })
+            })
+        })
+    }
+
+    #[pyo3(signature = (radius))]
+    fn blur(&mut self, radius: f32) -> PyResult<Self> {
+        let format = self.format;
+        let image = self.get_image()?;
+
+        Python::with_gil(|py| {
+            py.allow_threads(|| {
+                filters::blur(image, radius)
+            })
+        }).map(|filtered| PyImage {
+            lazy_image: LazyImage::Loaded(filtered),
+            format,
+        }).map_err(|e| e.into())
+    }
+
+    #[pyo3(signature = (strength=1.0))]
+    fn sharpen(&mut self, strength: f32) -> PyResult<Self> {
+        let format = self.format;
+        let image = self.get_image()?;
+
+        Python::with_gil(|py| {
+            py.allow_threads(|| {
+                filters::sharpen(image, strength)
+            })
+        }).map(|filtered| PyImage {
+            lazy_image: LazyImage::Loaded(filtered),
+            format,
+        }).map_err(|e| e.into())
+    }
+
+    fn edge_detect(&mut self) -> PyResult<Self> {
+        let format = self.format;
+        let image = self.get_image()?;
+
+        Python::with_gil(|py| {
+            py.allow_threads(|| {
+                filters::edge_detect(image)
+            })
+        }).map(|filtered| PyImage {
+            lazy_image: LazyImage::Loaded(filtered),
+            format,
+        }).map_err(|e| e.into())
+    }
+
+    fn emboss(&mut self) -> PyResult<Self> {
+        let format = self.format;
+        let image = self.get_image()?;
+
+        Python::with_gil(|py| {
+            py.allow_threads(|| {
+                filters::emboss(image)
+            })
+        }).map(|filtered| PyImage {
+            lazy_image: LazyImage::Loaded(filtered),
+            format,
+        }).map_err(|e| e.into())
+    }
+
+    #[pyo3(signature = (adjustment))]
+    fn brightness(&mut self, adjustment: i16) -> PyResult<Self> {
+        let format = self.format;
+        let image = self.get_image()?;
+
+        Python::with_gil(|py| {
+            py.allow_threads(|| {
+                filters::brightness(image, adjustment)
+            })
+        }).map(|filtered| PyImage {
+            lazy_image: LazyImage::Loaded(filtered),
+            format,
+        }).map_err(|e| e.into())
+    }
+
+    #[pyo3(signature = (factor))]
+    fn contrast(&mut self, factor: f32) -> PyResult<Self> {
+        let format = self.format;
+        let image = self.get_image()?;
+
+        Python::with_gil(|py| {
+            py.allow_threads(|| {
+                filters::contrast(image, factor)
+            })
+        }).map(|filtered| PyImage {
+            lazy_image: LazyImage::Loaded(filtered),
+            format,
+        }).map_err(|e| e.into())
     }
 
     fn __repr__(&mut self) -> String {

@@ -45,6 +45,23 @@ img.save("output.png")
 
 # Create new image
 new_img = puhu.new("RGB", (800, 600), "red")
+
+# Convert image modes
+gray_img = img.convert("L")  # RGB to grayscale
+rgba_img = img.convert("RGBA")  # Add alpha channel
+
+# Split image into channels
+r, g, b = img.split()  # RGB image -> 3 grayscale images
+
+# Paste one image onto another
+base = puhu.new("RGB", (200, 200), "white")
+overlay = puhu.new("RGB", (100, 100), "red")
+result = base.paste(overlay, (50, 50))  # Paste at position (50, 50)
+
+# Create image from NumPy array (requires numpy)
+import numpy as np
+array = np.random.randint(0, 256, (100, 100, 3), dtype=np.uint8)
+img_from_array = puhu.fromarray(array)
 ```
 
 ### Drop-in Pillow Replacement
@@ -69,14 +86,26 @@ img.save("resized.jpg")
 - `open()`, `new()`, `save()`
 - `resize()`, `crop()`, `rotate()`, `transpose()`
 - `copy()`, `thumbnail()`
+- `convert()`, `paste()`, `split()` - **NEW!**
+- `fromarray()` - **NEW!** NumPy Integration
 - Properties: `size`, `width`, `height`, `mode`, `format`
 - All major image formats (PNG, JPEG, BMP, TIFF, GIF, WEBP)
 
+### 🎨 Image Filters - **NEW!**
+
+- `blur()` - Gaussian blur with adjustable radius
+- `sharpen()` - Sharpening filter with adjustable strength
+- `edge_detect()` - Edge detection using Sobel operator
+- `emboss()` - Emboss effect
+- `brightness()` - Brightness adjustment
+- `contrast()` - Contrast adjustment
+- **Filter chaining** - Combine multiple filters for complex effects
+
 ### 🚧 Planned Features
 
-- `convert()`, `paste()`, `split()` - _High Priority_
-- `filter()`, `getpixel()`, `putpixel()` - _Medium Priority_
-- `fromarray()`, `frombytes()` - _NumPy Integration_
+- `getpixel()`, `putpixel()` - _Pixel-level operations_
+- `frombytes()`, `tobytes()` - _Enhanced I/O_
+- Additional filters and effects
 
 ## 📖 API Reference
 
@@ -138,13 +167,69 @@ format = img.format  # "JPEG", "PNG", etc.
 bytes_data = img.to_bytes()
 ```
 
+### New Features
+
+```python
+# Mode conversion
+gray_img = img.convert("L")        # Convert to grayscale
+rgba_img = img.convert("RGBA")     # Add alpha channel
+rgb_img = rgba_img.convert("RGB")  # Remove alpha channel
+
+# Channel splitting
+channels = img.split()
+# RGB image: returns [R, G, B] (3 grayscale images)
+# RGBA image: returns [R, G, B, A] (4 grayscale images)
+# Grayscale: returns [L] (1 grayscale image)
+
+# Image pasting/compositing
+base = puhu.new("RGB", (200, 200), "white")
+overlay = puhu.new("RGB", (100, 100), "red")
+
+# Basic paste at position
+result = base.paste(overlay, (50, 50))
+
+# Paste with mask (for alpha blending)
+mask = puhu.new("L", (100, 100), 128)  # 50% opacity
+result = base.paste(overlay, (50, 50), mask)
+
+# NumPy integration (requires numpy)
+import numpy as np
+
+# Create from array
+array = np.random.randint(0, 256, (100, 100, 3), dtype=np.uint8)  # RGB
+img = puhu.fromarray(array)
+
+# Grayscale array
+gray_array = np.random.randint(0, 256, (100, 100), dtype=np.uint8)
+gray_img = puhu.fromarray(gray_array)
+
+# Float arrays (automatically converted to uint8)
+float_array = np.random.random((50, 50, 3)).astype(np.float32)  # [0, 1] range
+img = puhu.fromarray(float_array)  # Automatically scaled to [0, 255]
+
+# Image filters
+blurred = img.blur(2.0)                    # Gaussian blur
+sharpened = img.sharpen(1.5)               # Sharpen filter
+edges = img.edge_detect()                  # Edge detection
+embossed = img.emboss()                    # Emboss effect
+brighter = img.brightness(50)              # Brightness +50
+high_contrast = img.contrast(1.5)          # 1.5x contrast
+
+# Filter chaining for complex effects
+artistic = img.blur(1.0).sharpen(2.0).brightness(20).contrast(1.3)
+
+# Functional API for filters
+blurred_func = puhu.blur(img, 3.0)
+edges_func = puhu.edge_detect(img)
+```
+
 ## 🔧 Development
 
 ### Building from Source
 
 ```bash
 # Clone repository
-git clone https://github.com/your-username/puhu.git
+git clone https://github.com/bgunebakan/puhu.git
 cd puhu
 
 # Install dependencies
@@ -168,11 +253,12 @@ pytest python/puhu/tests/
 
 Contributions are welcome! Areas where help is needed:
 
-1. **High Priority Features**: `convert()`, `paste()`, `fromarray()`, `split()`
-2. **Performance Optimization**: Further speed improvements
-3. **Format Support**: Additional image formats
-4. **Documentation**: Examples and tutorials
-5. **Testing**: Edge cases and compatibility tests
+1. **Medium Priority Features**: `filter()`, `getpixel()`, `putpixel()`, `frombytes()`
+2. **Performance Optimization**: Further speed improvements and benchmarking
+3. **Format Support**: Additional image formats and metadata handling
+4. **Advanced Operations**: Image filters, transformations, and effects
+5. **Documentation**: More examples and tutorials
+6. **Testing**: Edge cases, compatibility tests, and performance benchmarks
 
 ## 📄 License
 

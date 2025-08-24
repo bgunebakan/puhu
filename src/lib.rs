@@ -2,6 +2,7 @@ use pyo3::prelude::*;
 use pyo3::types::PyModule;
 
 mod errors;
+mod filters;
 mod image;
 mod formats;
 mod operations;
