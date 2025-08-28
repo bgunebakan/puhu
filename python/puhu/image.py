@@ -10,6 +10,7 @@ from .enums import Resampling, Transpose
 
 try:
     import numpy as np
+
     HAS_NUMPY = True
 except ImportError:
     np = None
@@ -109,7 +110,9 @@ class Image:
             ValueError: If array has unsupported shape or dtype
         """
         if not HAS_NUMPY:
-            raise ImportError("numpy is required for fromarray(). Install with: pip install numpy")
+            raise ImportError(
+                "numpy is required for fromarray(). Install with: pip install numpy"
+            )
 
         if not isinstance(obj, np.ndarray):
             raise ValueError("Expected numpy array")
@@ -640,7 +643,9 @@ class Image:
         Returns:
             Image: New image with replaced colors
         """
-        return Image(self._rust_image.replace_color(target_color, replacement_color, tolerance))
+        return Image(
+            self._rust_image.replace_color(target_color, replacement_color, tolerance)
+        )
 
     def threshold(self, threshold_value):
         """Apply threshold to create binary image.
@@ -737,7 +742,9 @@ class Image:
         Returns:
             Image: New image with drop shadow
         """
-        return Image(self._rust_image.drop_shadow(offset_x, offset_y, blur_radius, shadow_color))
+        return Image(
+            self._rust_image.drop_shadow(offset_x, offset_y, blur_radius, shadow_color)
+        )
 
     def inner_shadow(self, offset_x, offset_y, blur_radius, shadow_color):
         """Apply inner shadow effect.
@@ -751,7 +758,9 @@ class Image:
         Returns:
             Image: New image with inner shadow
         """
-        return Image(self._rust_image.inner_shadow(offset_x, offset_y, blur_radius, shadow_color))
+        return Image(
+            self._rust_image.inner_shadow(offset_x, offset_y, blur_radius, shadow_color)
+        )
 
     def glow(self, blur_radius, glow_color, intensity=1.0):
         """Apply glow effect.

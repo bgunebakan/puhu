@@ -7,13 +7,14 @@ from pathlib import Path
 
 import pytest
 
-from puhu import Image, Resampling, Transpose
+from puhu import Image, Resampling, Transpose, convert, fromarray
 from puhu import new as puhu_new
 from puhu import open as puhu_open
-from puhu import convert, fromarray, split, paste
+from puhu import paste, split
 
 try:
     import numpy as np
+
     HAS_NUMPY = True
 except ImportError:
     np = None
