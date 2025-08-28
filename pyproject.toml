@@ -27,13 +27,14 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 keywords = ["image", "processing", "pillow", "rust", "performance"]
-dependencies = []
+dependencies = [
+    "numpy>=1.20"
+]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0",
     "pytest-benchmark>=4.0",
-    "numpy>=1.20",
     "pillow>=9.0",  # For comparison testing
 ]
 

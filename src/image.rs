@@ -95,7 +95,8 @@ impl PyImage {
         }
     }
 
-    #[classmethod]
+    #[new]
+    #[pyo3(signature = (mode, size, color=None))]
     fn new(_cls: &Bound<'_, PyType>, mode: &str, size: (u32, u32), color: Option<(u8, u8, u8, u8)>) -> PyResult<Self> {
         let (width, height) = size;
         
@@ -175,6 +176,7 @@ impl PyImage {
     }
 
     #[classmethod]
+    #[pyo3(signature = (array, _mode=None))]
     fn fromarray(_cls: &Bound<'_, PyType>, array: &Bound<'_, PyAny>, _mode: Option<&str>) -> PyResult<Self> {
         // Try to handle 2D array (grayscale)
         if let Ok(array_2d) = array.downcast::<PyArray2<u8>>() {
@@ -257,6 +259,7 @@ impl PyImage {
         }
     }
 
+    #[pyo3(signature = (path_or_buffer, format=None))]
     fn save(&mut self, path_or_buffer: &Bound<'_, PyAny>, format: Option<String>) -> PyResult<()> {
         if let Ok(path) = path_or_buffer.extract::<String>() {
             // Save to file path
@@ -286,6 +289,7 @@ impl PyImage {
         }
     }
 
+    #[pyo3(signature = (size, resample=None))]
     fn resize(&mut self, size: (u32, u32), resample: Option<String>) -> PyResult<Self> {
         let (width, height) = size;
         let format = self.format;
@@ -580,6 +584,7 @@ impl PyImage {
         result.map_err(|e| e.into())
     }
 
+    #[pyo3(signature = (other, position=None, mask=None))]
     fn paste(&mut self, other: &mut Self, position: Option<(i32, i32)>, mask: Option<Self>) -> PyResult<Self> {
         let format = self.format;
         let base_image = self.get_image()?;
