@@ -7,7 +7,24 @@ performance and memory-safety issues through a Rust backend.
 
 from .enums import ImageFormat, ImageMode, Resampling, Transpose
 from .image import Image
-from .operations import convert, crop, new, open, resize, rotate, save
+from .operations import (
+    blur,
+    brightness,
+    contrast,
+    convert,
+    crop,
+    edge_detect,
+    emboss,
+    fromarray,
+    new,
+    open,
+    paste,
+    resize,
+    rotate,
+    save,
+    sharpen,
+    split,
+)
 
 __version__ = "0.1.0"
 __author__ = "Bilal Tonga"
@@ -25,4 +42,14 @@ __all__ = [
     "crop",
     "rotate",
     "convert",
+    "fromarray",
+    "split",
+    "paste",
+    # Filters
+    "blur",
+    "sharpen",
+    "edge_detect",
+    "emboss",
+    "brightness",
+    "contrast",
 ]

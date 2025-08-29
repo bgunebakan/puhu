@@ -1,10 +1,16 @@
 use pyo3::prelude::*;
 use pyo3::types::PyModule;
 
+mod blending;
+mod css_filters;
+mod drawing;
 mod errors;
+mod filters;
 mod image;
 mod formats;
 mod operations;
+mod pixels;
+mod shadows;
 
 pub use errors::PuhuError;
 pub use image::PyImage;

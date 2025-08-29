@@ -5,7 +5,16 @@
 [![Rust](https://img.shields.io/badge/rust-1.70+-orange.svg)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-A **blazingly fast**, modern image processing library for Python, powered by Rust. Puhu provides a Pillow-compatible API while delivering significantly performance for common image operations.
+A **blazingly fast**, modern image processing library for Python, powered by Rust. Puhu provides a Pillow-compatible API while delivering significantly better performance for common image operations.
+
+## 📚 Documentation
+
+- **[Quick Start Guide](docs/quickstart.md)** - Get up and running in minutes
+- **[Basic Usage](docs/basic-usage.md)** - Core concepts and common patterns
+- **[API Reference](docs/api-reference.md)** - Complete method documentation
+- **[Examples](docs/examples.md)** - Real-world usage examples
+- **[Performance Guide](docs/performance.md)** - Optimization techniques
+- **[Migration Guide](docs/migration.md)** - Migrating from Pillow
 
 ## ✨ Key Features
 
@@ -45,6 +54,23 @@ img.save("output.png")
 
 # Create new image
 new_img = puhu.new("RGB", (800, 600), "red")
+
+# Convert image modes
+gray_img = img.convert("L")  # RGB to grayscale
+rgba_img = img.convert("RGBA")  # Add alpha channel
+
+# Split image into channels
+r, g, b = img.split()  # RGB image -> 3 grayscale images
+
+# Paste one image onto another
+base = puhu.new("RGB", (200, 200), "white")
+overlay = puhu.new("RGB", (100, 100), "red")
+result = base.paste(overlay, (50, 50))  # Paste at position (50, 50)
+
+# Create image from NumPy array (requires numpy)
+import numpy as np
+array = np.random.randint(0, 256, (100, 100, 3), dtype=np.uint8)
+img_from_array = puhu.fromarray(array)
 ```
 
 ### Drop-in Pillow Replacement
@@ -69,14 +95,58 @@ img.save("resized.jpg")
 - `open()`, `new()`, `save()`
 - `resize()`, `crop()`, `rotate()`, `transpose()`
 - `copy()`, `thumbnail()`
+- `convert()`, `paste()`, `split()` - **NEW!**
+- `fromarray()` - **NEW!** NumPy Integration
 - Properties: `size`, `width`, `height`, `mode`, `format`
 - All major image formats (PNG, JPEG, BMP, TIFF, GIF, WEBP)
 
+### 🎨 Image Filters - **NEW!**
+
+**Basic Filters:**
+- `blur()` - Gaussian blur with adjustable radius
+- `sharpen()` - Sharpening filter with adjustable strength
+- `edge_detect()` - Edge detection using Sobel operator
+- `emboss()` - Emboss effect
+- `brightness()` - Brightness adjustment
+- `contrast()` - Contrast adjustment
+
+**CSS-like Filters:**
+- `sepia()` - Sepia tone effect
+- `grayscale_filter()` - Grayscale conversion with amount control
+- `invert()` - Color inversion effect
+- `hue_rotate()` - Hue rotation in degrees
+- `saturate()` - Saturation adjustment
+
+**Filter chaining** - Combine multiple filters for complex effects
+
+### 🎯 Pixel Manipulation - **NEW!**
+
+- `getpixel()`, `putpixel()` - Direct pixel access and modification
+- `histogram()` - Color histogram analysis
+- `dominant_color()`, `average_color()` - Color analysis
+- `replace_color()` - Color replacement with tolerance
+- `threshold()` - Binary thresholding
+- `posterize()` - Color quantization
+
+### 🎨 Drawing Operations - **NEW!**
+
+- `draw_rectangle()` - Filled rectangles with alpha blending
+- `draw_circle()` - Filled circles with alpha blending
+- `draw_line()` - Lines using Bresenham's algorithm
+- `draw_text()` - Basic text rendering with bitmap fonts
+
+### ✨ Shadow Effects - **NEW!**
+
+- `drop_shadow()` - Drop shadow with blur and offset
+- `inner_shadow()` - Inner shadow effects
+- `glow()` - Glow effects with customizable intensity
+
 ### 🚧 Planned Features
 
-- `convert()`, `paste()`, `split()` - _High Priority_
-- `filter()`, `getpixel()`, `putpixel()` - _Medium Priority_
-- `fromarray()`, `frombytes()` - _NumPy Integration_
+- `frombytes()`, `tobytes()` - _Enhanced I/O_
+- Advanced text rendering with font support
+- Path operations and vector graphics
+- Additional blend modes and compositing operations
 
 ## 📖 API Reference
 
@@ -144,7 +214,7 @@ bytes_data = img.to_bytes()
 
 ```bash
 # Clone repository
-git clone https://github.com/your-username/puhu.git
+git clone https://github.com/bgunebakan/puhu.git
 cd puhu
 
 # Install dependencies
@@ -164,15 +234,43 @@ pytest python/puhu/tests/
 - Rust 1.70+
 - Maturin for building
 
+## 📖 Learn More
+
+### 🚀 Getting Started
+- **[Quick Start Guide](docs/quickstart.md)** - Installation and first steps
+- **[Basic Usage](docs/basic-usage.md)** - Essential concepts and patterns
+- **[Migration Guide](docs/migration.md)** - Moving from Pillow to Puhu
+
+### 📚 Reference & Examples
+- **[API Reference](docs/api-reference.md)** - Complete method documentation
+- **[Examples](docs/examples.md)** - Real-world usage examples
+- **[Performance Guide](docs/performance.md)** - Optimization techniques
+
+### 🎯 Use Cases
+- **Photography**: Portrait enhancement, landscape processing, batch operations
+- **Web Development**: Image resizing, format optimization, thumbnail generation
+- **Creative Projects**: Artistic filters, collages, social media content
+- **Data Visualization**: Charts, infographics, dashboard creation
+- **E-commerce**: Product showcases, catalog generation, watermarking
+
 ## 🤝 Contributing
+
+### Contributors
+
+- **[GrandpaEJ](https://github.com/GrandpaEJ)** - Feature requests and guidance
+
+### How to Contribute
 
 Contributions are welcome! Areas where help is needed:
 
-1. **High Priority Features**: `convert()`, `paste()`, `fromarray()`, `split()`
-2. **Performance Optimization**: Further speed improvements
-3. **Format Support**: Additional image formats
-4. **Documentation**: Examples and tutorials
-5. **Testing**: Edge cases and compatibility tests
+1. **Medium Priority Features**: `getpixel()`, `putpixel()`, `frombytes()`
+2. **Performance Optimization**: Further speed improvements and benchmarking
+3. **Format Support**: Additional image formats and metadata handling
+4. **Advanced Operations**: CSS-like filters, path operations, text rendering
+5. **Documentation**: More examples and tutorials
+6. **Testing**: Edge cases, compatibility tests, and performance benchmarks
+
+See **[Contributing Guide](docs/contributing.md)** for detailed information.
 
 ## 📄 License
 
