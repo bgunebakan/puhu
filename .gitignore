@@ -299,3 +299,9 @@ target/criterion/
 # Tarpaulin coverage
 tarpaulin-report.html
 cobertura.xml
+
+uv.lock
+.pdm.lock
+*.lock
+
+.zen*

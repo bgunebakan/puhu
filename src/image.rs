@@ -95,9 +95,9 @@ impl PyImage {
         }
     }
 
-    #[new]
+    #[staticmethod]
     #[pyo3(signature = (mode, size, color=None))]
-    fn new(_cls: &Bound<'_, PyType>, mode: &str, size: (u32, u32), color: Option<(u8, u8, u8, u8)>) -> PyResult<Self> {
+    fn new(mode: &str, size: (u32, u32), color: Option<(u8, u8, u8, u8)>) -> PyResult<Self> {
         let (width, height) = size;
         
         if width == 0 || height == 0 {
@@ -144,8 +144,8 @@ impl PyImage {
         })
     }
 
-    #[classmethod]
-    fn open(_cls: &Bound<'_, PyType>, path_or_bytes: &Bound<'_, PyAny>) -> PyResult<Self> {
+    #[staticmethod]
+    fn open(path_or_bytes: &Bound<'_, PyAny>) -> PyResult<Self> {
         if let Ok(path) = path_or_bytes.extract::<String>() {
             // Store path for lazy loading
             let path_buf = PathBuf::from(&path);
@@ -175,9 +175,9 @@ impl PyImage {
         }
     }
 
-    #[classmethod]
+    #[staticmethod]
     #[pyo3(signature = (array, _mode=None))]
-    fn fromarray(_cls: &Bound<'_, PyType>, array: &Bound<'_, PyAny>, _mode: Option<&str>) -> PyResult<Self> {
+    fn fromarray(array: &Bound<'_, PyAny>, _mode: Option<&str>) -> PyResult<Self> {
         // Try to handle 2D array (grayscale)
         if let Ok(array_2d) = array.downcast::<PyArray2<u8>>() {
             let readonly = array_2d.readonly();
