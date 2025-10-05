@@ -1,6 +1,8 @@
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyType};
 use image::{DynamicImage, ImageFormat, ColorType};
+use image::imageops::colorops::{grayscale, dither, BiLevel};
+use rayon::prelude::*;
 use std::io::Cursor;
 use std::path::PathBuf;
 use crate::errors::PuhuError;
@@ -73,6 +75,80 @@ impl PyImage {
     fn get_image(&mut self) -> Result<&DynamicImage, PuhuError> {
         self.lazy_image.ensure_loaded()
     }
+
+    fn convert_with_matrix(image: &DynamicImage, target_mode: &str, matrix: &[f64]) -> Result<DynamicImage, PuhuError> {
+        // 4-tuple: single channel transform (e.g., L -> RGB)
+        // 12-tuple: RGB -> RGB color space transform
+        match (matrix.len(), target_mode) {
+            (4, "RGB") => {
+                let luma_img = image.to_luma8();
+                let (width, height) = luma_img.dimensions();
+                
+                // Parallel processing of pixels
+                let pixels: Vec<u8> = luma_img.par_iter()
+                    .flat_map(|&l| {
+                        let l_f64 = l as f64;
+                        [
+                            (matrix[0] * l_f64).clamp(0.0, 255.0) as u8,
+                            (matrix[1] * l_f64).clamp(0.0, 255.0) as u8,
+                            (matrix[2] * l_f64).clamp(0.0, 255.0) as u8,
+                        ]
+                    })
+                    .collect();
+                
+                let rgb_img = image::RgbImage::from_raw(width, height, pixels)
+                    .ok_or_else(|| PuhuError::InvalidOperation(
+                        "Failed to create RGB image from converted pixels".to_string()
+                    ))?;
+                Ok(DynamicImage::ImageRgb8(rgb_img))
+            }
+            (12, "RGB") => {
+                let rgb_img = image.to_rgb8();
+                let (width, height) = rgb_img.dimensions();
+                
+                // Parallel processing of pixels
+                let pixels: Vec<u8> = rgb_img.par_chunks(3)
+                    .flat_map(|pixel| {
+                        let r = pixel[0] as f64;
+                        let g = pixel[1] as f64;
+                        let b = pixel[2] as f64;
+                        [
+                            (matrix[0] * r + matrix[1] * g + matrix[2] * b + matrix[3]).clamp(0.0, 255.0) as u8,
+                            (matrix[4] * r + matrix[5] * g + matrix[6] * b + matrix[7]).clamp(0.0, 255.0) as u8,
+                            (matrix[8] * r + matrix[9] * g + matrix[10] * b + matrix[11]).clamp(0.0, 255.0) as u8,
+                        ]
+                    })
+                    .collect();
+                
+                let result_img = image::RgbImage::from_raw(width, height, pixels)
+                    .ok_or_else(|| PuhuError::InvalidOperation(
+                        "Failed to create RGB image from converted pixels".to_string()
+                    ))?;
+                Ok(DynamicImage::ImageRgb8(result_img))
+            }
+            (4, mode) => Err(PuhuError::InvalidOperation(
+                format!("4-tuple matrix conversion to mode '{}' not supported", mode)
+            )),
+            (12, mode) => Err(PuhuError::InvalidOperation(
+                format!("12-tuple matrix conversion to mode '{}' not supported", mode)
+            )),
+            (len, _) => Err(PuhuError::InvalidOperation(
+                format!("Matrix must be 4-tuple or 12-tuple, got {}-tuple", len)
+            )),
+        }
+    }
+
+    fn convert_to_bilevel(image: &DynamicImage, apply_dither: bool) -> Result<DynamicImage, PuhuError> {
+        let mut luma = grayscale(image);
+        if apply_dither {
+            dither(&mut luma, &BiLevel);
+        } else {
+            for pixel in luma.pixels_mut() {
+                pixel[0] = if pixel[0] > 127 { 255 } else { 0 };
+            }
+        }
+        Ok(DynamicImage::ImageLuma8(luma))
+    }
 }
 
 #[pymethods]
@@ -88,6 +164,7 @@ impl PyImage {
     }
 
     #[classmethod]
+    #[pyo3(signature = (mode, size, color=None))]
     fn new(_cls: &Bound<'_, PyType>, mode: &str, size: (u32, u32), color: Option<(u8, u8, u8, u8)>) -> PyResult<Self> {
         let (width, height) = size;
         
@@ -166,6 +243,7 @@ impl PyImage {
         }
     }
 
+    #[pyo3(signature = (path_or_buffer, format=None))]
     fn save(&mut self, path_or_buffer: &Bound<'_, PyAny>, format: Option<String>) -> PyResult<()> {
         if let Ok(path) = path_or_buffer.extract::<String>() {
             // Save to file path
@@ -195,6 +273,7 @@ impl PyImage {
         }
     }
 
+    #[pyo3(signature = (size, resample=None))]
     fn resize(&mut self, size: (u32, u32), resample: Option<String>) -> PyResult<Self> {
         let (width, height) = size;
         let format = self.format;
@@ -347,6 +426,94 @@ impl PyImage {
             lazy_image: self.lazy_image.clone(),
             format: self.format,
         }
+    }
+
+    #[pyo3(signature = (mode, matrix=None, dither=None, palette=None, colors=None))]
+    fn convert(
+        &mut self,
+        mode: &str,
+        matrix: Option<Vec<f64>>,
+        dither: Option<String>,
+        palette: Option<String>,
+        colors: Option<u32>,
+    ) -> PyResult<Self> {
+        let format = self.format;
+        let image = self.get_image()?;
+        
+        // If matrix is provided, validate it
+        if let Some(ref mat) = matrix {
+            if mat.len() != 4 && mat.len() != 12 {
+                return Err(PuhuError::InvalidOperation(
+                    "Matrix must be a 4-tuple or 12-tuple of floats".to_string()
+                ).into());
+            }
+        }
+        
+        let current_mode = color_type_to_mode_string(image.color());
+        
+        // Early return if converting to the same mode (and no matrix)
+        if current_mode == mode && matrix.is_none() {
+            return Ok(PyImage {
+                lazy_image: LazyImage::Loaded(image.clone()),
+                format,
+            });
+        }
+        
+        Python::with_gil(|py| {
+            py.allow_threads(|| {
+                let converted = if let Some(mat) = matrix {
+                    Self::convert_with_matrix(image, mode, &mat)?
+                } else {
+                    match mode {
+                        "L" => {
+                            // grayscale
+                            DynamicImage::ImageLuma8(image.to_luma8())
+                        }
+                        "LA" => {
+                            // grayscale with alpha
+                            DynamicImage::ImageLumaA8(image.to_luma_alpha8())
+                        }
+                        "RGB" => {
+                            DynamicImage::ImageRgb8(image.to_rgb8())
+                        }
+                        "RGBA" => {
+                            DynamicImage::ImageRgba8(image.to_rgba8())
+                        }
+                        "1" => {
+                            // bilevel
+                            let apply_dither = match dither.as_deref() {
+                                Some("NONE") | Some("none") => false,
+                                Some("FLOYDSTEINBERG") | Some("floydsteinberg") => true,
+                                None => true,
+                                Some(other) => {
+                                    return Err(PuhuError::InvalidOperation(
+                                        format!("Unsupported dither method: {}", other)
+                                    ).into());
+                                }
+                            };
+                            
+                            Self::convert_to_bilevel(image, apply_dither)?
+                        }
+                        "P" => {
+                            // TODO: implement palette mode conversion
+                            return Err(PuhuError::InvalidOperation(
+                                "Palette mode 'P' conversion not yet fully supported. Use 'RGB' or 'RGBA' instead.".to_string()
+                            ).into());
+                        }
+                        _ => {
+                            return Err(PuhuError::InvalidOperation(
+                                format!("Unsupported conversion mode: {}", mode)
+                            ).into());
+                        }
+                    }
+                };
+                
+                Ok(PyImage {
+                    lazy_image: LazyImage::Loaded(converted),
+                    format,
+                })
+            })
+        })
     }
 
     fn __repr__(&mut self) -> String {
