@@ -5,6 +5,9 @@ mod errors;
 mod image;
 mod formats;
 mod operations;
+mod utils;
+mod conversions;
+mod palette;
 
 pub use errors::PuhuError;
 pub use image::PyImage;
