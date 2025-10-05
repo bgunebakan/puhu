@@ -229,8 +229,9 @@ dependencies = [
 
 [[package]]
 name = "puhu-core"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
+ "color_quant",
  "image",
  "pyo3",
  "rayon",
