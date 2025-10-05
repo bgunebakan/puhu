@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Optional, Tuple, Union
 
 from ._core import Image as RustImage
-from .enums import Resampling, Transpose
+from .enums import Palette, Resampling, Transpose
 
 
 class Image:
@@ -292,7 +292,7 @@ class Image:
         mode: str,
         matrix: Optional[Tuple[float, ...]] = None,
         dither: Optional[str] = None,
-        palette: str = "WEB",
+        palette: str = Palette.WEB,
         colors: int = 256,
     ) -> "Image":
         """
