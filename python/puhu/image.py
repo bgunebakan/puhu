@@ -302,8 +302,8 @@ class Image:
             mode: Target mode (e.g., 'L', 'RGB', 'RGBA', 'LA', '1', 'P')
             matrix: Optional conversion matrix (4-tuple or 12-tuple of floats).
                    If given, this should be a 4- or 12-tuple containing floating point values.
-            dither: Dithering method, used when converting from mode "RGB" to "P" 
-                   or from "RGB" or "L" to "1". Available methods are "NONE" or 
+            dither: Dithering method, used when converting from mode "RGB" to "P"
+                   or from "RGB" or "L" to "1". Available methods are "NONE" or
                    "FLOYDSTEINBERG" (default). Note that this is not used when matrix is supplied.
             palette: Palette to use when converting from mode "RGB" to "P".
                     Available palettes are "WEB" (default) or "ADAPTIVE".
