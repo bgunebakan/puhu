@@ -1,0 +1,71 @@
+# Pre-commit hooks for Puhu
+# See https://pre-commit.com for more information
+
+repos:
+  # General file cleanup
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^(.*\.md|.*\.txt)$
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-added-large-files
+        args: ["--maxkb=1000"]
+      - id: check-merge-conflict
+      - id: mixed-line-ending
+
+  # Python code formatting with Black
+  - repo: https://github.com/psf/black
+    rev: 24.1.1
+    hooks:
+      - id: black
+        name: Format Python code with Black
+        language_version: python3
+        files: ^python/.*\.py$
+
+  # Python import sorting with isort
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        name: Sort Python imports with isort
+        files: ^python/.*\.py$
+        args: ["--profile", "black"]
+
+  # Rust formatting
+  - repo: local
+    hooks:
+      - id: cargo-fmt
+        name: Format Rust code with cargo fmt
+        entry: cargo fmt
+        language: system
+        files: \.rs$
+        pass_filenames: false
+
+  # Python linting with flake8 (optional but recommended)
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        name: Lint Python code with flake8
+        files: ^python/.*\.py$
+        args:
+          - --extend-ignore=E203,W503,E741
+          - --exclude=__pycache__,.git,build,dist,*.egg-info
+          - --max-line-length=120
+
+# Global settings
+default_language_version:
+  python: python3
+
+exclude: |
+  (?x)^(
+    .*\.egg-info/.*|
+    build/.*|
+    dist/.*|
+    target/.*|
+    \.pytest_cache/.*|
+    __pycache__/.*
+  )$
