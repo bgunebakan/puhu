@@ -98,3 +98,17 @@ class Transpose:
             cls.TRANSVERSE_INT: cls.TRANSVERSE,
         }
         return mapping.get(value, cls.FLIP_LEFT_RIGHT)
+
+
+class Dither:
+    """Dithering method constants for convert() and quantize()."""
+
+    NONE = "NONE"
+    FLOYDSTEINBERG = "FLOYDSTEINBERG"
+
+
+class Palette:
+    """Palette constants for convert() method."""
+
+    WEB = "WEB"
+    ADAPTIVE = "ADAPTIVE"
