@@ -5,7 +5,8 @@ Provides the high-level API while addressing
 performance and memory-safety issues through a Rust backend.
 """
 
-from .enums import Dither, ImageFormat, ImageMode, Palette, Resampling, Transpose
+from .enums import (Dither, ImageFormat, ImageMode, Palette, Resampling,
+                    Transpose)
 from .image import Image
 from .operations import convert, crop, new, open, resize, rotate, save
 
