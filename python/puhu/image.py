@@ -287,6 +287,36 @@ class Image:
         """Get the raw pixel data as bytes."""
         return self._rust_image.to_bytes()
 
+    def convert(
+        self,
+        mode: str,
+        matrix: Optional[Tuple[float, ...]] = None,
+        dither: Optional[str] = None,
+        palette: Optional[str] = None,
+        colors: int = 256,
+    ) -> "Image":
+        """
+        Convert the image to a different mode.
+
+        Args:
+            mode: Target mode (e.g., 'L', 'RGB', 'RGBA', 'LA', '1')
+            matrix: Optional conversion matrix (4-tuple or 12-tuple of floats)
+            dither: Dithering method for mode '1' conversion.
+                   Options: 'NONE', 'FLOYDSTEINBERG' (default)
+            palette: TODO: implement
+            colors: Number of colors for palette mode (default: 256)
+
+        Returns:
+            Image instance in the target mode
+
+        """
+        matrix_list = list(matrix) if matrix is not None else None
+
+        rust_image = self._rust_image.convert(
+            mode, matrix=matrix_list, dither=dither, palette=palette, colors=colors
+        )
+        return Image(rust_image)
+
     # Properties
     @property
     def size(self) -> Tuple[int, int]:
