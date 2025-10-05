@@ -1,5 +1,5 @@
-use pyo3::prelude::*;
 use pyo3::exceptions::PyException;
+use pyo3::prelude::*;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
