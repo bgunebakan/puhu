@@ -1,6 +1,6 @@
 [package]
 name = "puhu-core"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Bilal Tonga"]
 description = "A high-performance, memory-safe image processing library for Python"
@@ -16,6 +16,7 @@ pyo3 = { version = "0.22", features = ["extension-module", "abi3", "abi3-py38"] 
 image = { version = "0.25.6", features = ["jpeg", "png", "gif", "bmp", "tiff", "webp"], default-features = false }
 rayon = "1.7"
 thiserror = "1.0"
+color_quant = "1.1"
 
 [features]
 default = []

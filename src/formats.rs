@@ -1,5 +1,5 @@
-use image::ImageFormat;
 use crate::errors::PuhuError;
+use image::ImageFormat;
 
 /// Parse a format string into an ImageFormat
 pub fn parse_format(format_str: &str) -> Result<ImageFormat, PuhuError> {
@@ -17,7 +17,8 @@ pub fn parse_format(format_str: &str) -> Result<ImageFormat, PuhuError> {
         "FARBFELD" | "FF" => Ok(ImageFormat::Farbfeld),
         "AVIF" => Ok(ImageFormat::Avif),
         _ => Err(PuhuError::UnsupportedFormat(format!(
-            "Unsupported format: {}", format_str
+            "Unsupported format: {}",
+            format_str
         ))),
     }
 }

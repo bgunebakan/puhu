@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Optional, Tuple, Union
 
 from ._core import Image as RustImage
-from .enums import Resampling, Transpose
+from .enums import Palette, Resampling, Transpose
 
 
 class Image:
@@ -286,6 +286,46 @@ class Image:
     def to_bytes(self) -> bytes:
         """Get the raw pixel data as bytes."""
         return self._rust_image.to_bytes()
+
+    def convert(
+        self,
+        mode: str,
+        matrix: Optional[Tuple[float, ...]] = None,
+        dither: Optional[str] = None,
+        palette: str = Palette.WEB,
+        colors: int = 256,
+    ) -> "Image":
+        """
+        Convert the image to a different mode.
+
+        Args:
+            mode: Target mode (e.g., 'L', 'RGB', 'RGBA', 'LA', '1', 'P')
+            matrix: Optional conversion matrix (4-tuple or 12-tuple of floats).
+                   If given, this should be a 4- or 12-tuple containing floating point values.
+            dither: Dithering method, used when converting from mode "RGB" to "P"
+                   or from "RGB" or "L" to "1". Available methods are "NONE" or
+                   "FLOYDSTEINBERG" (default). Note that this is not used when matrix is supplied.
+            palette: Palette to use when converting from mode "RGB" to "P".
+                    Available palettes are "WEB" (default) or "ADAPTIVE".
+            colors: Number of colors to use for the "ADAPTIVE" palette. Defaults to 256.
+
+        Returns:
+            Image instance in the target mode
+
+        Examples:
+            >>> img = Image.new('RGB', (100, 100))
+            >>> gray = img.convert('L')  # Convert to grayscale
+            >>> rgba = img.convert('RGBA')  # Add alpha channel
+            >>> bw = img.convert('1')  # Convert to black and white with dithering
+            >>> bw_no_dither = img.convert('1', dither='NONE')  # No dithering
+            >>> palette_img = img.convert('P', palette='ADAPTIVE', colors=128)  # 128-color palette
+        """
+        matrix_list = list(matrix) if matrix is not None else None
+
+        rust_image = self._rust_image.convert(
+            mode, matrix=matrix_list, dither=dither, palette=palette, colors=colors
+        )
+        return Image(rust_image)
 
     # Properties
     @property

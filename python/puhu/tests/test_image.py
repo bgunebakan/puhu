@@ -208,6 +208,128 @@ class TestImage:
         img4 = puhu_new("RGB", (25, 25), "red")
         assert img1 != img4
 
+    def test_convert_rgb_to_grayscale(self):
+        """Test converting RGB to grayscale (L mode)."""
+        img = puhu_new("RGB", (50, 50), (128, 128, 128))
+        gray = img.convert("L")
+        assert gray.mode == "L"
+        assert gray.size == (50, 50)
+        assert gray is not img
+
+    def test_convert_rgb_to_rgba(self):
+        """Test converting RGB to RGBA."""
+        img = puhu_new("RGB", (50, 50), (255, 0, 0))
+        rgba = img.convert("RGBA")
+        assert rgba.mode == "RGBA"
+        assert rgba.size == (50, 50)
+
+    def test_convert_rgba_to_rgb(self):
+        """Test converting RGBA to RGB."""
+        img = puhu_new("RGBA", (50, 50), (255, 0, 0, 128))
+        rgb = img.convert("RGB")
+        assert rgb.mode == "RGB"
+        assert rgb.size == (50, 50)
+
+    def test_convert_to_grayscale_alpha(self):
+        """Test converting to LA (grayscale with alpha)."""
+        img = puhu_new("RGB", (50, 50), (128, 128, 128))
+        la = img.convert("LA")
+        assert la.mode == "LA"
+        assert la.size == (50, 50)
+
+    def test_convert_to_bilevel_with_dither(self):
+        """Test converting to bilevel (mode 1) with Floyd-Steinberg dithering."""
+        img = puhu_new("RGB", (50, 50), (128, 128, 128))
+        bilevel = img.convert("1")
+        assert bilevel.mode == "L"
+        assert bilevel.size == (50, 50)
+
+    def test_convert_to_bilevel_without_dither(self):
+        """Test converting to bilevel without dithering."""
+        img = puhu_new("RGB", (50, 50), (128, 128, 128))
+        bilevel = img.convert("1", dither="NONE")
+        assert bilevel.mode == "L"
+        assert bilevel.size == (50, 50)
+
+    def test_convert_same_mode(self):
+        """Test converting to the same mode (should return copy)."""
+        img = puhu_new("RGB", (50, 50), (255, 0, 0))
+        same = img.convert("RGB")
+        assert same.mode == "RGB"
+        assert same.size == img.size
+        assert same is not img
+
+    def test_convert_with_matrix_rgb_transformation(self):
+        """Test converting with a custom 12-tuple matrix for RGB color space transformation."""
+        img = puhu_new("RGB", (10, 10), (255, 0, 0))
+        # RGB to XYZ transformation matrix
+        rgb2xyz = [
+            0.412453,
+            0.357580,
+            0.180423,
+            0.0,
+            0.212671,
+            0.715160,
+            0.072169,
+            0.0,
+            0.019334,
+            0.119193,
+            0.950227,
+            0.0,
+        ]
+        converted = img.convert("RGB", matrix=rgb2xyz)
+        assert converted.mode == "RGB"
+        assert converted.size == (10, 10)
+
+    def test_convert_invalid_mode(self):
+        """Test converting to an unsupported mode."""
+        img = puhu_new("RGB", (50, 50))
+        with pytest.raises(Exception):
+            img.convert("INVALID_MODE")
+
+    def test_convert_invalid_matrix_size(self):
+        """Test converting with invalid matrix size."""
+        img = puhu_new("RGB", (10, 10))
+        with pytest.raises(Exception):
+            img.convert("RGB", matrix=[1.0, 2.0, 3.0])
+
+    def test_convert_chain(self):
+        """Test chaining multiple conversions."""
+        img = puhu_new("RGB", (50, 50), (255, 128, 64))
+        result = img.convert("L").convert("RGB").convert("RGBA")
+        assert result.mode == "RGBA"
+        assert result.size == (50, 50)
+
+    def test_convert_to_palette_web(self):
+        """Test converting to palette mode with WEB palette."""
+        img = puhu_new("RGB", (50, 50), (128, 200, 64))
+        palette_img = img.convert("P", palette="WEB")
+        assert palette_img.mode == "RGB"
+        assert palette_img.size == (50, 50)
+
+    def test_convert_to_palette_adaptive(self):
+        """Test converting to palette mode with ADAPTIVE palette."""
+        img = puhu_new("RGB", (50, 50), (255, 128, 64))
+        palette_img = img.convert("P", palette="ADAPTIVE", colors=64)
+        assert palette_img.mode == "RGB"
+        assert palette_img.size == (50, 50)
+
+    def test_convert_to_palette_with_dither(self):
+        """Test palette conversion with dithering."""
+        img = puhu_new("RGB", (50, 50), (200, 150, 100))
+        dithered = img.convert(
+            "P", palette="ADAPTIVE", colors=32, dither="FLOYDSTEINBERG"
+        )
+        assert dithered.mode == "RGB"
+        assert dithered.size == (50, 50)
+
+    def test_convert_to_palette_without_dither(self):
+        """Test palette conversion without dithering."""
+        img = puhu_new("RGB", (50, 50), (200, 150, 100))
+        no_dither = img.convert("P", palette="ADAPTIVE", colors=32, dither="NONE")
+        assert no_dither.mode == "RGB"
+        assert no_dither.size == (50, 50)
+
 
 class TestErrorHandling:
     """Test error handling and edge cases."""
