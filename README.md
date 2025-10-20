@@ -1,27 +1,36 @@
 # Puhu 🦉
 
 [![CI](https://github.com/bgunebakan/puhu/workflows/CI/badge.svg)](https://github.com/bgunebakan/puhu/actions)
+[![Build Wheels](https://github.com/bgunebakan/puhu/workflows/Build%20Multi-Platform%20Wheels/badge.svg)](https://github.com/bgunebakan/puhu/actions)
+[![PyPI](https://img.shields.io/pypi/v/puhu.svg)](https://pypi.org/project/puhu/)
 [![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![Rust](https://img.shields.io/badge/rust-1.70+-orange.svg)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-A **blazingly fast**, modern image processing library for Python, powered by Rust. Puhu provides a Pillow-compatible API while delivering significantly performance for common image operations.
+A modern image processing library for Python, powered by Rust. Puhu provides a Pillow-compatible API while delivering significantly performance for common image operations.
 
-## ✨ Key Features
+## Key Features
 
-- **🔥 High Performance**: Significantly fast for common image operations
-- **🔄 Pillow Compatible**: Drop-in replacement for most Pillow operations
-- **🦀 Rust Powered**: Memory-safe and efficient core written in Rust
-- **📦 Easy to Use**: Simple, intuitive API that feels familiar
-- **🎯 Format Support**: PNG, JPEG, BMP, TIFF, GIF, WEBP
+- **High Performance**: Significantly fast for common image operations
+- **Pillow Compatible**: Drop-in replacement for most Pillow operations
+- **Rust Powered**: Memory-safe and efficient core written in Rust
+- **Easy to Use**: Simple, intuitive API that feels familiar
+- **Format Support**: PNG, JPEG, BMP, TIFF, GIF, WEBP
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Installation
 
 ```bash
 pip install puhu
 ```
+
+**Platform Support**: Pre-built wheels available for:
+
+- Linux (x86_64, ARM64)
+- macOS (Intel, Apple Silicon M1/M2/M3)
+- Windows (x64)
+- Python 3.8+
 
 ### Basic Usage
 
@@ -62,9 +71,9 @@ img = img.resize((400, 300))
 img.save("resized.jpg")
 ```
 
-## 🔄 Pillow Compatibility
+## Pillow Compatibility
 
-### ✅ Fully Compatible Operations
+### Fully Compatible Operations
 
 - `open()`, `new()`, `save()`
 - `resize()`, `crop()`, `rotate()`, `transpose()`
@@ -72,13 +81,13 @@ img.save("resized.jpg")
 - Properties: `size`, `width`, `height`, `mode`, `format`
 - All major image formats (PNG, JPEG, BMP, TIFF, GIF, WEBP)
 
-### 🚧 Planned Features
+### Planned Features
 
-- `convert()`, `paste()`, `split()` - _High Priority_
+- `paste()`, `split()` - _High Priority_
 - `filter()`, `getpixel()`, `putpixel()` - _Medium Priority_
 - `fromarray()`, `frombytes()` - _NumPy Integration_
 
-## 📖 API Reference
+## API Reference
 
 ### Core Functions
 
@@ -138,7 +147,7 @@ format = img.format  # "JPEG", "PNG", etc.
 bytes_data = img.to_bytes()
 ```
 
-## 🔧 Development
+## Development
 
 ### Building from Source
 
@@ -164,21 +173,25 @@ pytest python/puhu/tests/
 - Rust 1.70+
 - Maturin for building
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Areas where help is needed:
 
-1. **High Priority Features**: `convert()`, `paste()`, `fromarray()`, `split()`
+1. **High Priority Features**: `paste()`, `fromarray()`, `split()`
 2. **Performance Optimization**: Further speed improvements
 3. **Format Support**: Additional image formats
 4. **Documentation**: Examples and tutorials
 5. **Testing**: Edge cases and compatibility tests
 
-## 📄 License
+### Release Process
+
+For maintainers releasing new versions, see [.github/RELEASE.md](.github/RELEASE.md) for the complete release workflow. The project uses GitHub Actions to automatically build wheels for all platforms (Linux x86_64/ARM64, macOS Intel/Apple Silicon, Windows) and publish to PyPI.
+
+## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - Built with [PyO3](https://pyo3.rs/) for Python-Rust integration
 - Uses [image-rs](https://github.com/image-rs/image) for core image processing
