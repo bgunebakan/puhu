@@ -1,6 +1,6 @@
 [package]
 name = "puhu-core"
-version = "0.2.0"
+version = "0.2.2"
 edition = "2021"
 authors = ["Bilal Tonga"]
 description = "A high-performance, memory-safe image processing library for Python"

@@ -5,7 +5,7 @@ All notable changes to Puhu will be documented here.
 
 The format is based on `Keep a Changelog <https://keepachangelog.com/>`_.
 
-Version 0.2.1 (Current)
+Version 0.2.2 (Current)
 -----------------------
 
 **Added**

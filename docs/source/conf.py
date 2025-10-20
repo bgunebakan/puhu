@@ -5,44 +5,45 @@
 
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../../python'))
+
+sys.path.insert(0, os.path.abspath("../../python"))
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'Puhu'
-copyright = '2024, Bilal Tonga'
-author = 'Bilal Tonga'
-release = '0.2.1'
+project = "Puhu"
+copyright = "2024, Bilal Tonga"
+author = "Bilal Tonga"
+release = "0.2.2"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.napoleon',
-    'sphinx.ext.viewcode',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.githubpages',
-    'myst_parser',
+    "sphinx.ext.autodoc",
+    "sphinx.ext.napoleon",
+    "sphinx.ext.viewcode",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.githubpages",
+    "myst_parser",
 ]
 
-templates_path = ['_templates']
+templates_path = ["_templates"]
 exclude_patterns = []
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'sphinx_rtd_theme'
-html_static_path = ['_static']
+html_theme = "sphinx_rtd_theme"
+html_static_path = ["_static"]
 
 # Theme options
 html_theme_options = {
-    'navigation_depth': 4,
-    'collapse_navigation': False,
-    'sticky_navigation': True,
-    'includehidden': True,
-    'titles_only': False
+    "navigation_depth": 4,
+    "collapse_navigation": False,
+    "sticky_navigation": True,
+    "includehidden": True,
+    "titles_only": False,
 }
 
 # Logo and favicon (optional - add if you have them)
@@ -50,12 +51,12 @@ html_theme_options = {
 # html_favicon = "_static/favicon.ico"
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = "sphinx"
 
 # Intersphinx mapping
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3', None),
-    'pillow': ('https://pillow.readthedocs.io/en/stable/', None),
+    "python": ("https://docs.python.org/3", None),
+    "pillow": ("https://pillow.readthedocs.io/en/stable/", None),
 }
 
 # Napoleon settings for Google/NumPy docstring support
