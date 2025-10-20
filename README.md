@@ -1,151 +1,61 @@
 # Puhu 🦉
 
 [![CI](https://github.com/bgunebakan/puhu/workflows/CI/badge.svg)](https://github.com/bgunebakan/puhu/actions)
-[![Build Wheels](https://github.com/bgunebakan/puhu/workflows/Build%20Multi-Platform%20Wheels/badge.svg)](https://github.com/bgunebakan/puhu/actions)
 [![PyPI](https://img.shields.io/pypi/v/puhu.svg)](https://pypi.org/project/puhu/)
+[![Documentation](https://readthedocs.org/projects/puhu/badge/?version=latest)](https://puhu.readthedocs.io/en/latest/)
 [![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![Rust](https://img.shields.io/badge/rust-1.70+-orange.svg)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-A modern image processing library for Python, powered by Rust. Puhu provides a Pillow-compatible API while delivering significantly performance for common image operations.
+A modern, high-performance image processing library for Python, powered by Rust. Puhu provides a Pillow-compatible API while delivering significantly better performance for common image operations.
 
-## Key Features
+## Features
 
-- **High Performance**: Significantly fast for common image operations
-- **Pillow Compatible**: Drop-in replacement for most Pillow operations
-- **Rust Powered**: Memory-safe and efficient core written in Rust
-- **Easy to Use**: Simple, intuitive API that feels familiar
-- **Format Support**: PNG, JPEG, BMP, TIFF, GIF, WEBP
+- **High Performance** - Rust-powered for significantly faster operations
+- **Pillow Compatible** - Drop-in replacement for most Pillow operations
+- **Memory Safe** - Built with Rust's memory safety guarantees
+- **Easy to Install** - Pre-built wheels for all major platforms
+- **Rich Format Support** - PNG, JPEG, BMP, TIFF, GIF, WEBP
 
-## Quick Start
-
-### Installation
+## Installation
 
 ```bash
 pip install puhu
 ```
 
-**Platform Support**: Pre-built wheels available for:
+Pre-built wheels are available for:
 
-- Linux (x86_64, ARM64)
-- macOS (Intel, Apple Silicon M1/M2/M3)
-- Windows (x64)
-- Python 3.8+
+- **Linux** (x86_64, ARM64)
+- **macOS** (Intel, Apple Silicon)
+- **Windows** (x64)
+- **Python** 3.8+
 
-### Basic Usage
+## Quick Start
 
 ```python
 import puhu
 
-# Open an image
+# Open and process an image
 img = puhu.open("photo.jpg")
-
-# Resize image
-resized = img.resize((800, 600))
-
-# Crop image
-cropped = img.crop((100, 100, 500, 400))
-
-# Rotate image
-rotated = img.rotate(90)
-
-# Save image
+img = img.resize((800, 600))
+img = img.crop((100, 100, 500, 400))
 img.save("output.png")
 
-# Create new image
-new_img = puhu.new("RGB", (800, 600), "red")
-```
-
-### Drop-in Pillow Replacement
-
-```python
-# Replace this:
-# from PIL import Image
-
-# With this:
+# Drop-in Pillow replacement
 from puhu import Image
-
-# Your existing Pillow code works unchanged!
 img = Image.open("photo.jpg")
 img = img.resize((400, 300))
 img.save("resized.jpg")
 ```
 
-## Pillow Compatibility
+## Documentation
 
-### Fully Compatible Operations
+Full documentation is available at **[puhu.readthedocs.io](https://puhu.readthedocs.io)**
 
-- `open()`, `new()`, `save()`
-- `resize()`, `crop()`, `rotate()`, `transpose()`
-- `copy()`, `thumbnail()`
-- Properties: `size`, `width`, `height`, `mode`, `format`
-- All major image formats (PNG, JPEG, BMP, TIFF, GIF, WEBP)
-
-### Planned Features
-
-- `paste()`, `split()` - _High Priority_
-- `filter()`, `getpixel()`, `putpixel()` - _Medium Priority_
-- `fromarray()`, `frombytes()` - _NumPy Integration_
-
-## API Reference
-
-### Core Functions
-
-```python
-# Open image from file or bytes
-img = puhu.open("path/to/image.jpg")
-img = puhu.open(image_bytes)
-
-# Create new image
-img = puhu.new(mode, size, color=None)
-# Examples:
-img = puhu.new("RGB", (800, 600))  # Black image
-img = puhu.new("RGB", (800, 600), "red")  # Red image
-img = puhu.new("RGB", (800, 600), (255, 0, 0))  # Red image with RGB tuple
-```
-
-### Image Operations
-
-```python
-# Resize image
-resized = img.resize((width, height), resample=puhu.Resampling.BILINEAR)
-
-# Crop image (left, top, right, bottom)
-cropped = img.crop((x1, y1, x2, y2))
-
-# Rotate image (90°, 180°, 270° supported)
-rotated = img.rotate(90)
-
-# Transpose/flip image
-flipped = img.transpose(puhu.Transpose.FLIP_LEFT_RIGHT)
-flipped = img.transpose(puhu.Transpose.FLIP_TOP_BOTTOM)
-
-# Copy image
-copy = img.copy()
-
-# Create thumbnail (modifies image in-place)
-img.thumbnail((200, 200))
-
-# Save image
-img.save("output.jpg", format="JPEG")
-img.save("output.png")  # Format auto-detected from extension
-```
-
-### Properties
-
-```python
-# Image dimensions
-width = img.width
-height = img.height
-size = img.size  # (width, height) tuple
-
-# Image mode and format
-mode = img.mode  # "RGB", "RGBA", "L", etc.
-format = img.format  # "JPEG", "PNG", etc.
-
-# Raw pixel data
-bytes_data = img.to_bytes()
-```
+- [Installation Guide](https://puhu.readthedocs.io/en/latest/installation.html)
+- [Quick Start Tutorial](https://puhu.readthedocs.io/en/latest/quickstart.html)
+- [API Reference](https://puhu.readthedocs.io/en/latest/api.html)
+- [Pillow Compatibility](https://puhu.readthedocs.io/en/latest/pillow_compatibility.html)
 
 ## Development
 
@@ -153,46 +63,34 @@ bytes_data = img.to_bytes()
 
 ```bash
 # Clone repository
-git clone https://github.com/your-username/puhu.git
+git clone https://github.com/bgunebakan/puhu.git
 cd puhu
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Build Rust extension
+# Build and install
 maturin develop --release
 
 # Run tests
 pytest python/puhu/tests/
-
 ```
 
-### Requirements
-
-- Python 3.8+
-- Rust 1.70+
-- Maturin for building
+**Requirements**: Python 3.8+, Rust 1.70+, Maturin
 
 ## Contributing
 
-Contributions are welcome! Areas where help is needed:
-
-1. **High Priority Features**: `paste()`, `fromarray()`, `split()`
-2. **Performance Optimization**: Further speed improvements
-3. **Format Support**: Additional image formats
-4. **Documentation**: Examples and tutorials
-5. **Testing**: Edge cases and compatibility tests
-
-### Release Process
-
-For maintainers releasing new versions, see [.github/RELEASE.md](.github/RELEASE.md) for the complete release workflow. The project uses GitHub Actions to automatically build wheels for all platforms (Linux x86_64/ARM64, macOS Intel/Apple Silicon, Windows) and publish to PyPI.
+Contributions are welcome! See our [Contributing Guide](https://puhu.readthedocs.io/en/latest/contributing.html) for details.
 
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
-## Acknowledgments
+## Links
 
-- Built with [PyO3](https://pyo3.rs/) for Python-Rust integration
-- Uses [image-rs](https://github.com/image-rs/image) for core image processing
-- Inspired by [Pillow](https://pillow.readthedocs.io/) for API design
+- **Documentation**: https://puhu.readthedocs.io
+- **PyPI**: https://pypi.org/project/puhu/
+- **Source Code**: https://github.com/bgunebakan/puhu
+- **Issue Tracker**: https://github.com/bgunebakan/puhu/issues
+
+Built with [PyO3](https://pyo3.rs/) and [image-rs](https://github.com/image-rs/image)
