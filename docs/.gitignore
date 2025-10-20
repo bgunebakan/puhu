@@ -1,0 +1,27 @@
+# Sphinx build outputs
+build/
+_build/
+
+# Sphinx cache
+.doctrees/
+
+# Auto-generated files
+source/api/*.rst
+source/_autosummary/
+
+# Python
+*.pyc
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
