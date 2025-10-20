@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "puhu"
-version = "0.2.0"
+version = "0.2.1"
 description = "A modern, high-performance image processing library for Python, powered by Rust."
 authors = [
     {name = "Bilal Tonga", email = "bilaltonga@gmail.com"},
