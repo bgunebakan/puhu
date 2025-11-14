@@ -1,2 +1,0 @@
-pillow==11.3.0
-pytest-benchmark==5.1.0

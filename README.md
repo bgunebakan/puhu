@@ -57,6 +57,10 @@ Full documentation is available at **[puhu.readthedocs.io](https://puhu.readthed
 - [API Reference](https://puhu.readthedocs.io/en/latest/api.html)
 - [Pillow Compatibility](https://puhu.readthedocs.io/en/latest/pillow_compatibility.html)
 
+## Benchmarks
+
+Full benchmarks are available at **[BENCHMARKS.md](BENCHMARKS.md)**
+
 ## Development
 
 ### Building from Source
