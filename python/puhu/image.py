@@ -58,7 +58,7 @@ class Image:
         cls,
         mode: str,
         size: Tuple[int, int],
-        color: Union[int, Tuple[int, ...], str] = 0,
+        color: Union[int, Tuple[int, ...], str, None] = 0,
     ) -> "Image":
         """
         Create a new image with the given mode and size.
@@ -69,72 +69,14 @@ class Image:
             color: Fill color. Can be:
                 - Single integer for grayscale modes
                 - Tuple of integers for RGB/RGBA modes
-                - String color name (basic colors only)
+                - String color name or hex code (e.g., 'red', '#ff0000')
                 - Default is 0 (black/transparent)
 
         Returns:
             New Image instance
         """
-        # Convert color to RGBA tuple
-        rgba_color = cls._parse_color(color, mode)
-
-        rust_image = RustImage.new(mode, size, rgba_color)
+        rust_image = RustImage.new(mode, size, color)
         return cls(rust_image)
-
-    @staticmethod
-    def _parse_color(
-        color: Union[int, Tuple[int, ...], str], mode: str
-    ) -> Optional[Tuple[int, int, int, int]]:
-        """
-        Parse color input into RGBA tuple format.
-        """
-        if color is None:
-            return None
-
-        # Handle string colors (basic support)
-        if isinstance(color, str):
-            color_map = {
-                "black": (0, 0, 0, 255),
-                "white": (255, 255, 255, 255),
-                "red": (255, 0, 0, 255),
-                "green": (0, 255, 0, 255),
-                "blue": (0, 0, 255, 255),
-                "yellow": (255, 255, 0, 255),
-                "cyan": (0, 255, 255, 255),
-                "magenta": (255, 0, 255, 255),
-            }
-            if color.lower() in color_map:
-                return color_map[color.lower()]
-            else:
-                raise ValueError(f"Unsupported color name: {color}")
-
-        # Handle integer (grayscale)
-        if isinstance(color, int):
-            if mode in ["L", "LA"]:
-                return (color, 0, 0, 255 if mode == "L" else color)
-            else:
-                return (color, color, color, 255)
-
-        # Handle tuple
-        if isinstance(color, (tuple, list)):
-            color = tuple(color)
-            if len(color) == 1:
-                return (color[0], color[0], color[0], 255)
-            elif len(color) == 2:
-                # For LA mode: (grayscale, alpha)
-                if mode == "LA":
-                    return (color[0], 0, 0, color[1])
-                else:
-                    # For other modes, treat as grayscale with alpha
-                    return (color[0], color[0], color[0], color[1])
-            elif len(color) == 3:
-                return (color[0], color[1], color[2], 255)
-            elif len(color) == 4:
-                return color
-            else:
-                raise ValueError(f"Invalid color tuple length: {len(color)}")
-
-        raise ValueError(f"Unsupported color type: {type(color)}")
 
     def save(
         self, fp: Union[str, Path], format: Optional[str] = None, **options
