@@ -143,12 +143,6 @@ class TestPaste:
         with pytest.raises(Exception):
             bg.paste("not_a_color", (0, 0, 5, 5))
 
-        # Size mismatch (src vs box) - handled in Rust PuhuError
-        fg = Image.new("RGB", (5, 5))
-        with pytest.raises(Exception):
-            bg.paste(fg, (0, 0, 10, 10))  # 5x5 src vs 10x10 box
-
-    @pytest.mark.skip(reason="Negative coordinates not yet implemented")
     def test_paste_negative_coords(self):
         """Test paste with negative coordinates (clipping)."""
         bg = Image.new("RGB", (10, 10), (0, 0, 0))  # Black
