@@ -504,9 +504,9 @@ impl PyImage {
                 } else if let Some(box_val) = actual_box {
                     // Try to extract 4-tuple to get dimensions
                     if let Ok((left, top, right, bottom)) =
-                        box_val.extract::<(u32, u32, u32, u32)>()
+                        box_val.extract::<(i32, i32, i32, i32)>()
                     {
-                        (right - left, bottom - top)
+                        ((right - left) as u32, (bottom - top) as u32)
                     } else {
                         return Err(PuhuError::InvalidOperation(
                             "Cannot determine region size for color fill; use 4-item box"
@@ -523,12 +523,12 @@ impl PyImage {
             }
         };
 
-        // Step 4: Parse and expand box coordinates
-        let box_4tuple = if let Some(box_val) = actual_box {
-            if let Ok((x, y)) = box_val.extract::<(u32, u32)>() {
+        // Step 4: Parse and expand box coordinates (supports negative for clipping)
+        let box_4tuple: (i32, i32, i32, i32) = if let Some(box_val) = actual_box {
+            if let Ok((x, y)) = box_val.extract::<(i32, i32)>() {
                 // 2-tuple: expand to 4-tuple
-                (x, y, x + src_width, y + src_height)
-            } else if let Ok(coords) = box_val.extract::<(u32, u32, u32, u32)>() {
+                (x, y, x + src_width as i32, y + src_height as i32)
+            } else if let Ok(coords) = box_val.extract::<(i32, i32, i32, i32)>() {
                 coords
             } else {
                 return Err(PuhuError::InvalidOperation(
@@ -538,12 +538,12 @@ impl PyImage {
             }
         } else {
             // None: default to (0, 0)
-            (0, 0, src_width, src_height)
+            (0, 0, src_width as i32, src_height as i32)
         };
 
         let (paste_x, paste_y, paste_right, paste_bottom) = box_4tuple;
-        let paste_width = paste_right - paste_x;
-        let paste_height = paste_bottom - paste_y;
+        let paste_width = (paste_right - paste_x) as u32;
+        let paste_height = (paste_bottom - paste_y) as u32;
 
         // Step 5: Get and prepare destination image
         let mut dest = self.get_image()?.clone();
@@ -562,20 +562,6 @@ impl PyImage {
                 } else {
                     src_img
                 };
-
-                // Validate size if 4-tuple box was provided
-                if source_converted.width() != paste_width
-                    || source_converted.height() != paste_height
-                {
-                    return Err(PuhuError::InvalidOperation(format!(
-                        "Source image size ({}x{}) must match paste region size ({}x{})",
-                        source_converted.width(),
-                        source_converted.height(),
-                        paste_width,
-                        paste_height
-                    ))
-                    .into());
-                }
 
                 // Paste with or without mask
                 if let Some(mask_bound) = actual_mask {

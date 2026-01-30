@@ -41,24 +41,98 @@ pub fn parse_color(input: &Bound<'_, PyAny>) -> PyResult<(u8, u8, u8, u8)> {
     }
 }
 
+/// Region information for paste operations with clipping support
+#[derive(Debug)]
+pub struct PasteRegion {
+    /// Source start x (offset into source image)
+    pub sx: u32,
+    /// Source start y (offset into source image)
+    pub sy: u32,
+    /// Destination start x
+    pub dx: u32,
+    /// Destination start y
+    pub dy: u32,
+    /// Copy width after clipping
+    pub cw: u32,
+    /// Copy height after clipping
+    pub ch: u32,
+}
+
+/// Calculate clipped paste region for negative or out-of-bounds coordinates
+pub fn calculate_paste_region(
+    src_w: u32,
+    src_h: u32,
+    dest_w: u32,
+    dest_h: u32,
+    x: i32,
+    y: i32,
+) -> Option<PasteRegion> {
+    // Source offsets (for negative dest coords, skip part of source)
+    let sx = (-x).max(0) as u32;
+    let sy = (-y).max(0) as u32;
+
+    // Dest offsets (clamp to 0 for negative coords)
+    let dx = x.max(0) as u32;
+    let dy = y.max(0) as u32;
+
+    // Calculate available source and dest dimensions
+    let src_remaining_w = src_w.saturating_sub(sx);
+    let src_remaining_h = src_h.saturating_sub(sy);
+    let dest_remaining_w = dest_w.saturating_sub(dx);
+    let dest_remaining_h = dest_h.saturating_sub(dy);
+
+    // Copy dimensions are minimum of remaining source and dest space
+    let cw = src_remaining_w.min(dest_remaining_w);
+    let ch = src_remaining_h.min(dest_remaining_h);
+
+    // Return None if nothing to copy
+    if cw == 0 || ch == 0 {
+        return None;
+    }
+
+    Some(PasteRegion {
+        sx,
+        sy,
+        dx,
+        dy,
+        cw,
+        ch,
+    })
+}
+
 /// Paste source image onto destination with mask-based alpha blending
+/// Supports negative coordinates through clipping
 pub fn paste_with_mask(
     dest: &mut DynamicImage,
     src: &DynamicImage,
-    x: u32,
-    y: u32,
+    x: i32,
+    y: i32,
     mask: &DynamicImage,
 ) -> Result<(), PuhuError> {
+    let region = match calculate_paste_region(
+        src.width(),
+        src.height(),
+        dest.width(),
+        dest.height(),
+        x,
+        y,
+    ) {
+        Some(r) => r,
+        None => return Ok(()), // Nothing to paste
+    };
+
     // Convert mask to grayscale if needed
     let mask_gray = mask.to_luma8();
 
-    for src_y in 0..src.height() {
-        for src_x in 0..src.width() {
-            let dest_x = x + src_x;
-            let dest_y = y + src_y;
+    for py in 0..region.ch {
+        for px in 0..region.cw {
+            let src_x = region.sx + px;
+            let src_y = region.sy + py;
+            let dest_x = region.dx + px;
+            let dest_y = region.dy + py;
 
-            // Skip if out of bounds
-            if dest_x >= dest.width() || dest_y >= dest.height() {
+            // Ensure mask coordinates are valid (mask might be different size)
+            if src_x >= mask_gray.width() || src_y >= mask_gray.height() {
                 continue;
             }
 
@@ -89,27 +163,27 @@ pub fn paste_with_mask(
 }
 
 /// Fill a region with a solid color
+/// Supports negative coordinates through clipping
 pub fn fill_region(
     dest: &mut DynamicImage,
-    x: u32,
-    y: u32,
+    x: i32,
+    y: i32,
     width: u32,
     height: u32,
     color: (u8, u8, u8, u8),
 ) -> Result<(), PuhuError> {
+    let region = match calculate_paste_region(width, height, dest.width(), dest.height(), x, y) {
+        Some(r) => r,
+        None => return Ok(()), // Nothing to fill
+    };
+
     let (r, g, b, a) = color;
     let pixel = image::Rgba([r, g, b, a]);
 
-    for dy in 0..height {
-        for dx in 0..width {
-            let dest_x = x + dx;
-            let dest_y = y + dy;
-
-            // Skip if out of bounds
-            if dest_x >= dest.width() || dest_y >= dest.height() {
-                continue;
-            }
-
+    for py in 0..region.ch {
+        for px in 0..region.cw {
+            let dest_x = region.dx + px;
+            let dest_y = region.dy + py;
             dest.put_pixel(dest_x, dest_y, pixel);
         }
     }
