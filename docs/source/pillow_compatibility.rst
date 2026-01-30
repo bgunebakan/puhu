@@ -31,6 +31,7 @@ Image Operations
 - ``transpose()`` - Flip and mirror operations
 - ``copy()`` - Create image copies
 - ``thumbnail()`` - Create thumbnails (in-place)
+- ``paste()`` - Paste images, colors, or fills with optional masks
 
 Properties and Attributes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -74,7 +75,6 @@ High Priority
 
 **In Development**
 
-- ``paste()`` - Paste images onto other images
 - ``split()`` - Split into individual bands
 - ``merge()`` - Merge bands into a new image
 - ``fromarray()`` - Create from NumPy arrays
