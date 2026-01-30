@@ -3,7 +3,9 @@ use crate::errors::PuhuError;
 use crate::formats;
 use crate::operations;
 use crate::palette;
-use crate::utils::color_type_to_mode_string;
+use crate::utils::{
+    color_type_to_mode_string, convert_mode, fill_region, parse_color, paste_with_mask,
+};
 use image::{DynamicImage, ImageFormat};
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyType};
@@ -82,7 +84,7 @@ impl PyImage {
         _cls: &Bound<'_, PyType>,
         mode: &str,
         size: (u32, u32),
-        color: Option<(u8, u8, u8, u8)>,
+        color: Option<&Bound<'_, PyAny>>,
     ) -> PyResult<Self> {
         let (width, height) = size;
 
@@ -93,39 +95,39 @@ impl PyImage {
             .into());
         }
 
+        let parsed_color = if let Some(c) = color {
+            parse_color(c)?
+        } else {
+            (0, 0, 0, 0)
+        };
+        let (r, g, b, a) = parsed_color;
+
         let image = match mode {
-            "RGB" => {
-                let (r, g, b, _) = color.unwrap_or((0, 0, 0, 255));
-                DynamicImage::ImageRgb8(image::RgbImage::from_pixel(
-                    width,
-                    height,
-                    image::Rgb([r, g, b]),
-                ))
-            }
-            "RGBA" => {
-                let (r, g, b, a) = color.unwrap_or((0, 0, 0, 0));
-                DynamicImage::ImageRgba8(image::RgbaImage::from_pixel(
-                    width,
-                    height,
-                    image::Rgba([r, g, b, a]),
-                ))
-            }
+            "RGB" => DynamicImage::ImageRgb8(image::RgbImage::from_pixel(
+                width,
+                height,
+                image::Rgb([r, g, b]),
+            )),
+            "RGBA" => DynamicImage::ImageRgba8(image::RgbaImage::from_pixel(
+                width,
+                height,
+                image::Rgba([r, g, b, a]),
+            )),
             "L" => {
-                let (gray, _, _, _) = color.unwrap_or((0, 0, 0, 255));
+                // If parsing returns full color but mode is L, we should probably just use one channel
+                // But parse_color returns RGBA. For int/float it puts val in R,G,B.
+                // So using R channel is safe for grayscale inputs.
                 DynamicImage::ImageLuma8(image::GrayImage::from_pixel(
                     width,
                     height,
-                    image::Luma([gray]),
+                    image::Luma([r]),
                 ))
             }
-            "LA" => {
-                let (gray, _, _, a) = color.unwrap_or((0, 0, 0, 255));
-                DynamicImage::ImageLumaA8(image::GrayAlphaImage::from_pixel(
-                    width,
-                    height,
-                    image::LumaA([gray, a]),
-                ))
-            }
+            "LA" => DynamicImage::ImageLumaA8(image::GrayAlphaImage::from_pixel(
+                width,
+                height,
+                image::LumaA([r, a]),
+            )),
             _ => {
                 return Err(PuhuError::InvalidOperation(format!(
                     "Unsupported image mode: {}",
@@ -449,6 +451,166 @@ impl PyImage {
                 })
             })
         })
+    }
+
+    #[pyo3(signature = (im, box_coords=None, mask=None))]
+    fn paste(
+        &mut self,
+        im: &Bound<'_, PyAny>,
+        box_coords: Option<&Bound<'_, PyAny>>,
+        mask: Option<&Bound<'_, PyAny>>,
+    ) -> PyResult<()> {
+        // Step 1: Handle abbreviated syntax - paste(im, mask) where box is actually mask
+        let (actual_box, actual_mask): (Option<&Bound<'_, PyAny>>, Option<&Bound<'_, PyAny>>) =
+            if let Some(box_val) = box_coords {
+                if box_val.downcast::<PyImage>().is_ok() {
+                    // Abbreviated syntax: paste(im, mask)
+                    (None, Some(box_val))
+                } else {
+                    (Some(box_val), mask)
+                }
+            } else {
+                (None, mask)
+            };
+
+        // Step 2: Parse source - can be Image or color tuple
+        enum PasteSource {
+            Image(DynamicImage),
+            Color((u8, u8, u8, u8)),
+        }
+
+        let source = if let Ok(img_ref) = im.downcast::<PyImage>() {
+            let mut img = img_ref.borrow_mut();
+            PasteSource::Image(img.get_image()?.clone())
+        } else if let Ok(color) = parse_color(im) {
+            PasteSource::Color(color)
+        } else {
+            return Err(PuhuError::InvalidOperation(
+                "im must be Image or valid color (tuple, string, int)".to_string(),
+            )
+            .into());
+        };
+
+        // Step 3: Get source dimensions
+        let (src_width, src_height) = match &source {
+            PasteSource::Image(img) => (img.width(), img.height()),
+            PasteSource::Color(_) => {
+                // Get dimensions from box or mask for color fill
+                if let Some(mask_bound) = actual_mask {
+                    let mask_ref = mask_bound.downcast::<PyImage>()?;
+                    let mut mask_img = mask_ref.borrow_mut();
+                    let mask_image = mask_img.get_image()?;
+                    (mask_image.width(), mask_image.height())
+                } else if let Some(box_val) = actual_box {
+                    // Try to extract 4-tuple to get dimensions
+                    if let Ok((left, top, right, bottom)) =
+                        box_val.extract::<(i32, i32, i32, i32)>()
+                    {
+                        ((right - left) as u32, (bottom - top) as u32)
+                    } else {
+                        return Err(PuhuError::InvalidOperation(
+                            "Cannot determine region size for color fill; use 4-item box"
+                                .to_string(),
+                        )
+                        .into());
+                    }
+                } else {
+                    return Err(PuhuError::InvalidOperation(
+                        "Cannot determine region size for color fill; use 4-item box".to_string(),
+                    )
+                    .into());
+                }
+            }
+        };
+
+        // Step 4: Parse and expand box coordinates (supports negative for clipping)
+        let box_4tuple: (i32, i32, i32, i32) = if let Some(box_val) = actual_box {
+            if let Ok((x, y)) = box_val.extract::<(i32, i32)>() {
+                // 2-tuple: expand to 4-tuple
+                (x, y, x + src_width as i32, y + src_height as i32)
+            } else if let Ok(coords) = box_val.extract::<(i32, i32, i32, i32)>() {
+                coords
+            } else {
+                return Err(PuhuError::InvalidOperation(
+                    "box must be 2-tuple (x, y) or 4-tuple (left, upper, right, lower)".to_string(),
+                )
+                .into());
+            }
+        } else {
+            // None: default to (0, 0)
+            (0, 0, src_width as i32, src_height as i32)
+        };
+
+        let (paste_x, paste_y, paste_right, paste_bottom) = box_4tuple;
+        let paste_width = (paste_right - paste_x) as u32;
+        let paste_height = (paste_bottom - paste_y) as u32;
+
+        // Step 5: Get and prepare destination image
+        let mut dest = self.get_image()?.clone();
+        let dest_mode = color_type_to_mode_string(dest.color());
+
+        // Step 6: Handle source based on type
+        match source {
+            PasteSource::Image(src_img) => {
+                // Mode conversion if needed
+                let src_mode = color_type_to_mode_string(src_img.color());
+                let source_converted = if dest_mode != src_mode
+                    && !(dest_mode == "RGB" && matches!(src_mode.as_str(), "RGBA" | "LA" | "RGBa"))
+                {
+                    // Convert source to destination mode
+                    convert_mode(&src_img, &dest_mode)?
+                } else {
+                    src_img
+                };
+
+                // Paste with or without mask
+                if let Some(mask_bound) = actual_mask {
+                    let mask_ref = mask_bound.downcast::<PyImage>()?;
+                    let mut mask_img_borrowed = mask_ref.borrow_mut();
+                    let mask_img = mask_img_borrowed.get_image()?;
+
+                    // Validate mask size
+                    if mask_img.width() != source_converted.width()
+                        || mask_img.height() != source_converted.height()
+                    {
+                        return Err(PuhuError::InvalidOperation(format!(
+                            "Mask size ({}x{}) must match source size ({}x{})",
+                            mask_img.width(),
+                            mask_img.height(),
+                            source_converted.width(),
+                            source_converted.height()
+                        ))
+                        .into());
+                    }
+
+                    // Perform masked paste
+                    paste_with_mask(&mut dest, &source_converted, paste_x, paste_y, mask_img)?;
+                } else {
+                    // Direct overlay using imageops
+                    image::imageops::overlay(
+                        &mut dest,
+                        &source_converted,
+                        paste_x as i64,
+                        paste_y as i64,
+                    );
+                }
+            }
+            PasteSource::Color(color) => {
+                // Fill region with solid color
+                fill_region(
+                    &mut dest,
+                    paste_x,
+                    paste_y,
+                    paste_width,
+                    paste_height,
+                    color,
+                )?;
+            }
+        }
+
+        // Update the image
+        self.lazy_image = LazyImage::Loaded(dest);
+        Ok(())
     }
 
     fn __repr__(&mut self) -> String {

@@ -58,7 +58,7 @@ class Image:
         cls,
         mode: str,
         size: Tuple[int, int],
-        color: Union[int, Tuple[int, ...], str] = 0,
+        color: Union[int, Tuple[int, ...], str, None] = 0,
     ) -> "Image":
         """
         Create a new image with the given mode and size.
@@ -69,72 +69,14 @@ class Image:
             color: Fill color. Can be:
                 - Single integer for grayscale modes
                 - Tuple of integers for RGB/RGBA modes
-                - String color name (basic colors only)
+                - String color name or hex code (e.g., 'red', '#ff0000')
                 - Default is 0 (black/transparent)
 
         Returns:
             New Image instance
         """
-        # Convert color to RGBA tuple
-        rgba_color = cls._parse_color(color, mode)
-
-        rust_image = RustImage.new(mode, size, rgba_color)
+        rust_image = RustImage.new(mode, size, color)
         return cls(rust_image)
-
-    @staticmethod
-    def _parse_color(
-        color: Union[int, Tuple[int, ...], str], mode: str
-    ) -> Optional[Tuple[int, int, int, int]]:
-        """
-        Parse color input into RGBA tuple format.
-        """
-        if color is None:
-            return None
-
-        # Handle string colors (basic support)
-        if isinstance(color, str):
-            color_map = {
-                "black": (0, 0, 0, 255),
-                "white": (255, 255, 255, 255),
-                "red": (255, 0, 0, 255),
-                "green": (0, 255, 0, 255),
-                "blue": (0, 0, 255, 255),
-                "yellow": (255, 255, 0, 255),
-                "cyan": (0, 255, 255, 255),
-                "magenta": (255, 0, 255, 255),
-            }
-            if color.lower() in color_map:
-                return color_map[color.lower()]
-            else:
-                raise ValueError(f"Unsupported color name: {color}")
-
-        # Handle integer (grayscale)
-        if isinstance(color, int):
-            if mode in ["L", "LA"]:
-                return (color, 0, 0, 255 if mode == "L" else color)
-            else:
-                return (color, color, color, 255)
-
-        # Handle tuple
-        if isinstance(color, (tuple, list)):
-            color = tuple(color)
-            if len(color) == 1:
-                return (color[0], color[0], color[0], 255)
-            elif len(color) == 2:
-                # For LA mode: (grayscale, alpha)
-                if mode == "LA":
-                    return (color[0], 0, 0, color[1])
-                else:
-                    # For other modes, treat as grayscale with alpha
-                    return (color[0], color[0], color[0], color[1])
-            elif len(color) == 3:
-                return (color[0], color[1], color[2], 255)
-            elif len(color) == 4:
-                return color
-            else:
-                raise ValueError(f"Invalid color tuple length: {len(color)}")
-
-        raise ValueError(f"Unsupported color type: {type(color)}")
 
     def save(
         self, fp: Union[str, Path], format: Optional[str] = None, **options
@@ -326,6 +268,66 @@ class Image:
             mode, matrix=matrix_list, dither=dither, palette=palette, colors=colors
         )
         return Image(rust_image)
+
+    def paste(
+        self,
+        im: Union["Image", Tuple[int, ...], int],
+        box: Union["Image", Tuple[int, int], Tuple[int, int, int, int], None] = None,
+        mask: Optional["Image"] = None,
+    ) -> None:
+        """
+        Paste another image into this image.
+
+        The box argument is either a 2-tuple giving the upper left corner,
+        a 4-tuple defining the left, upper, right, and lower pixel coordinate,
+        or None (same as (0, 0)). If a 4-tuple is given, the size of the pasted
+        image must match the size of the region.
+
+        If the modes don't match, the pasted image is converted to the mode of
+        this image.
+
+        Instead of an image, the source can be an integer or tuple containing
+        pixel values. The method then fills the region with the given color.
+
+        If a mask is given, this method updates only the regions indicated by
+        the mask. You can use either "1", "L", "LA", "RGBA" or "RGBa" images
+        (the alpha band is used as mask). Where the mask is 255, the given
+        image is copied as is. Where the mask is 0, the current value is
+        preserved. Intermediate values will mix the two images together.
+
+        Args:
+            im: Source image or pixel value (integer or tuple)
+            box: An optional 4-tuple giving the region to paste into.
+                If a 2-tuple is used instead, it's treated as the upper left corner.
+                If omitted or None, the source is pasted into the upper left corner.
+                If an image is given as the second argument and there is no third,
+                the box defaults to (0, 0), and the second argument is interpreted
+                as a mask image.
+            mask: An optional mask image.
+
+        Examples:
+            >>> bg = Image.new('RGB', (200, 200), (255, 255, 255))
+            >>> fg = Image.new('RGB', (50, 50), (255, 0, 0))
+            >>> bg.paste(fg, (10, 10))  # Paste at position (10, 10)
+            >>> bg.paste((0, 255, 0), (20, 20, 70, 70))  # Fill region with green
+            >>> mask = Image.new('L', (50, 50), 128)  # 50% transparency
+            >>> bg.paste(fg, (30, 30), mask)  # Paste with mask
+        """
+        # Convert Image wrapper to Rust image if needed
+        if isinstance(im, Image):
+            rust_im = im._rust_image
+        else:
+            rust_im = im
+
+        # Handle box, can be Image (mask), tuple, or None
+        if isinstance(box, Image):
+            rust_box = box._rust_image
+            rust_mask = None
+        else:
+            rust_box = box
+            rust_mask = mask._rust_image if mask is not None else None
+
+        self._rust_image.paste(rust_im, rust_box, rust_mask)
 
     # Properties
     @property

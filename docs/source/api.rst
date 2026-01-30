@@ -176,6 +176,44 @@ Image Class
           img.thumbnail((200, 200))
 
 
+   .. py:method:: paste(im, box=None, mask=None)
+
+      Pastes another image or color into this image.
+
+      The box argument specifies where to paste:
+
+      - **None**: Paste at (0, 0)
+      - **2-tuple (x, y)**: Upper left corner. Supports negative values for clipping.
+      - **4-tuple (left, upper, right, lower)**: Exact region (source size must match)
+
+      If the modes don't match, the pasted image is automatically converted.
+
+      :param im: Source image, color tuple (RGB/RGBA), single integer (grayscale), or color string
+      :type im: Image or tuple or int or str
+      :param box: Where to paste. 2-tuple for position, 4-tuple for exact region, or None for (0, 0)
+      :type box: tuple[int, int] or tuple[int, int, int, int] or None
+      :param mask: Optional mask image ("L" or "1" mode). Where mask is 255, source is copied fully.
+      :type mask: Image or None
+
+      Example::
+
+          # Paste image at position
+          bg.paste(fg, (100, 100))
+
+          # Paste with negative coords (clips source)
+          bg.paste(fg, (-10, -10))
+
+          # Fill region with color
+          img.paste((255, 0, 0), (0, 0, 100, 100))
+          img.paste("red", (0, 0, 100, 100))
+
+          # Paste with mask
+          bg.paste(fg, (0, 0), mask)
+
+          # Abbreviated syntax: paste(im, mask)
+          bg.paste(fg, mask)
+
+
    .. py:method:: save(fp, format=None)
 
       Saves this image to the specified file.

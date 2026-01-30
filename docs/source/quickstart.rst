@@ -123,6 +123,27 @@ Creating Thumbnails
    thumb = img.copy()
    thumb.thumbnail((200, 200))
 
+Pasting and Compositing
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+   # Paste an image at a position
+   bg = puhu.new("RGB", (800, 600), "white")
+   fg = puhu.new("RGB", (100, 100), "red")
+   bg.paste(fg, (50, 50))
+
+   # Fill a region with a color
+   img.paste((0, 255, 0), (0, 0, 100, 100))  # Green square
+   img.paste("blue", (100, 100, 200, 200))   # Blue square
+
+   # Paste with negative coords (clips source image)
+   bg.paste(fg, (-25, -25))  # Only bottom-right 75x75 is visible
+
+   # Paste with mask (mask controls transparency)
+   mask = puhu.new("L", (100, 100), 128)  # 50% opacity
+   bg.paste(fg, (200, 200), mask)
+
 Image Properties
 ----------------
 

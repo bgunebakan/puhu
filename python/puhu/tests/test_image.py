@@ -129,6 +129,19 @@ class TestImage:
         assert img4.size == (30, 30)
         assert img4.mode == "RGBA"
 
+        # Test with hex string
+        img5 = puhu_new("RGB", (10, 10), "#FF0000")
+        assert img5.mode == "RGB"
+        bytes_data = img5.to_bytes()
+        assert bytes_data[0] == 255
+        assert bytes_data[1] == 0
+
+        # Test with single int (grayscale)
+        img6 = puhu_new("L", (10, 10), 128)
+        assert img6.mode == "L"
+        bytes_data_l = img6.to_bytes()
+        assert bytes_data_l[0] == 128
+
     def test_resize_with_resampling(self):
         """Test resize with different resampling methods."""
         img = puhu_new("RGB", (100, 100))
