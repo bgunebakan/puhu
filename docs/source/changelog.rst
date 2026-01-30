@@ -5,7 +5,21 @@ All notable changes to Puhu will be documented here.
 
 The format is based on `Keep a Changelog <https://keepachangelog.com/>`_.
 
-Version 0.2.2 (Current)
+Version 0.3.0 (Current)
+-----------------------
+
+**Added**
+
+- ``paste()`` method for image composition with full Pillow compatibility:
+
+  - 2-tuple and 4-tuple box coordinates
+  - Negative coordinates with automatic clipping
+  - Color fills via RGB/RGBA tuples, single integers, or color strings
+  - Mask-based alpha blending
+  - Abbreviated syntax ``paste(im, mask)``
+  - Automatic mode conversion between source and destination
+
+Version 0.2.2
 -----------------------
 
 **Added**

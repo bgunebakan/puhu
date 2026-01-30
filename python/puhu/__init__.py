@@ -10,7 +10,7 @@ from .enums import Dither, ImageFormat, ImageMode, Resampling, Transpose
 from .image import Image
 from .operations import convert, crop, new, open, resize, rotate, save
 
-__version__ = "0.2.2"
+__version__ = "0.3.0"
 __author__ = "Bilal Tonga"
 
 __all__ = [
