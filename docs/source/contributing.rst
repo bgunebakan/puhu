@@ -61,9 +61,10 @@ Install Development Dependencies
 
    # Install Python dependencies
    pip install -r requirements.txt
-
-   # Install pre-commit hooks (optional but recommended)
+   pip install -r requirements-dev.txt
    pip install pre-commit
+   
+   # Install pre-commit hooks
    pre-commit install
 
 Build the Project

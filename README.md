@@ -61,6 +61,14 @@ Full documentation is available at **[puhu.readthedocs.io](https://puhu.readthed
 
 Full benchmarks are available at **[BENCHMARKS.md](BENCHMARKS.md)**
 
+Run/update benchmarks with:
+
+```bash
+python benchmark.py
+```
+
+This command prints a copyable markdown table (it does not update `BENCHMARKS.md`).
+
 ## Development
 
 ### Building from Source
