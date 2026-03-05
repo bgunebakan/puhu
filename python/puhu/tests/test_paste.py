@@ -180,15 +180,17 @@ class TestPaste:
         assert data[offset] == 0
 
     def test_paste_rgba_to_rgb(self):
-        """Test pasting RGBA onto RGB (alpha blending)."""
+        """Test pasting RGBA onto RGB without mask follows Pillow semantics."""
         bg = Image.new("RGB", (10, 10), (0, 0, 0))  # Black
         fg = Image.new("RGBA", (5, 5), (255, 255, 255, 128))  # Semi-transparent white
 
         bg.paste(fg, (0, 0))
 
         data = bg.to_bytes()
-        # Should be gray (~128)
-        assert 120 <= data[0] <= 135
+        # Pillow-compatible: alpha channel is not used unless mask is provided
+        assert data[0] == 255
+        assert data[1] == 255
+        assert data[2] == 255
 
     def test_paste_mask_size_mismatch_raises(self):
         """Mask size must match source image size."""
@@ -221,3 +223,47 @@ class TestPaste:
         after = bg.to_bytes()
 
         assert before == after
+
+    def test_paste_masked_rgba_to_rgb_matches_pillow(self):
+        """Parity check: masked RGBA->RGB paste should match Pillow bytes."""
+        pil_image = pytest.importorskip("PIL.Image")
+
+        # Pillow result
+        p_bg = pil_image.new("RGB", (10, 10), (10, 20, 30))
+        p_fg = pil_image.new("RGBA", (5, 5), (200, 100, 50, 255))
+        p_mask = pil_image.new("L", (5, 5), 128)
+        p_bg.paste(p_fg, (0, 0), p_mask)
+
+        # Puhu result
+        u_bg = Image.new("RGB", (10, 10), (10, 20, 30))
+        u_fg = Image.new("RGBA", (5, 5), (200, 100, 50, 255))
+        u_mask = Image.new("L", (5, 5), 128)
+        u_bg.paste(u_fg, (0, 0), u_mask)
+
+        assert u_bg.to_bytes() == p_bg.tobytes()
+
+    def test_paste_grayscale_color_rules_match_pillow(self):
+        """Parity check: L-mode color input rules should match Pillow behavior."""
+        pil_image = pytest.importorskip("PIL.Image")
+
+        # int works and should match bytes
+        p_bg = pil_image.new("L", (10, 10), 0)
+        p_bg.paste(128, (0, 0, 5, 5))
+        u_bg = Image.new("L", (10, 10), 0)
+        u_bg.paste(128, (0, 0, 5, 5))
+        assert u_bg.to_bytes() == p_bg.tobytes()
+
+        # single-element tuple works and should match bytes
+        p_bg = pil_image.new("L", (10, 10), 0)
+        p_bg.paste((128,), (0, 0, 5, 5))
+        u_bg = Image.new("L", (10, 10), 0)
+        u_bg.paste((128,), (0, 0, 5, 5))
+        assert u_bg.to_bytes() == p_bg.tobytes()
+
+        # RGB tuple should fail in both
+        p_bg = pil_image.new("L", (10, 10), 0)
+        with pytest.raises(Exception):
+            p_bg.paste((255, 0, 0), (0, 0, 5, 5))
+        u_bg = Image.new("L", (10, 10), 0)
+        with pytest.raises(Exception):
+            u_bg.paste((255, 0, 0), (0, 0, 5, 5))

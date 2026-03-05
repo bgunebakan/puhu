@@ -554,9 +554,7 @@ impl PyImage {
             PasteSource::Image(src_img) => {
                 // Mode conversion if needed
                 let src_mode = color_type_to_mode_string(src_img.color());
-                let source_converted = if dest_mode != src_mode
-                    && !(dest_mode == "RGB" && matches!(src_mode.as_str(), "RGBA" | "LA" | "RGBa"))
-                {
+                let source_converted = if dest_mode != src_mode {
                     // Convert source to destination mode
                     convert_mode(&src_img, &dest_mode)?
                 } else {
@@ -596,6 +594,15 @@ impl PyImage {
                 }
             }
             PasteSource::Color(color) => {
+                if dest_mode == "L"
+                    && (im.extract::<(u8, u8, u8)>().is_ok()
+                        || im.extract::<(u8, u8, u8, u8)>().is_ok())
+                {
+                    return Err(PuhuError::InvalidOperation(
+                        "color must be int or single-element tuple".to_string(),
+                    )
+                    .into());
+                }
                 // Fill region with solid color
                 fill_region(
                     &mut dest,

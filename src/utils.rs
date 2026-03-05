@@ -27,6 +27,9 @@ pub fn parse_color(input: &Bound<'_, PyAny>) -> PyResult<(u8, u8, u8, u8)> {
     } else if let Ok(val) = input.extract::<u8>() {
         // Single integer -> grayscale (opaque)
         Ok((val, val, val, 255))
+    } else if let Ok((val,)) = input.extract::<(u8,)>() {
+        // Single-element tuple -> grayscale (opaque)
+        Ok((val, val, val, 255))
     } else if let Ok(tuple) = input.extract::<(u8, u8, u8)>() {
         // RGB tuple -> opaque
         Ok((tuple.0, tuple.1, tuple.2, 255))
@@ -35,7 +38,7 @@ pub fn parse_color(input: &Bound<'_, PyAny>) -> PyResult<(u8, u8, u8, u8)> {
         Ok(tuple)
     } else {
         Err(PuhuError::InvalidOperation(
-            "Color must be a string, integer, or tuple (RGB/RGBA)".to_string(),
+            "Color must be a string, integer, or tuple (1-item/RGB/RGBA)".to_string(),
         )
         .into())
     }
@@ -208,11 +211,12 @@ pub fn fill_region(
     }
 
     if let Some(dest_luma) = dest.as_mut_luma8() {
+        let l = rgb_to_luma_u8(r, g, b);
         for py in 0..region.ch {
             let y = region.dy + py;
             for px in 0..region.cw {
                 let x = region.dx + px;
-                dest_luma.put_pixel(x, y, image::Luma([r]));
+                dest_luma.put_pixel(x, y, image::Luma([l]));
             }
         }
         return Ok(());
@@ -235,6 +239,12 @@ pub fn fill_region(
 fn blend_u8(src: u8, dst: u8, alpha: u8, inv_alpha: u16) -> u8 {
     let a = alpha as u16;
     (((src as u16 * a) + (dst as u16 * inv_alpha) + 127) / 255) as u8
+}
+
+#[inline]
+fn rgb_to_luma_u8(r: u8, g: u8, b: u8) -> u8 {
+    // Match Pillow-style luma conversion (ITU-R BT.601): 0.299 R + 0.587 G + 0.114 B
+    ((299u32 * r as u32 + 587u32 * g as u32 + 114u32 * b as u32 + 500) / 1000) as u8
 }
 
 fn paste_with_mask_rgb8(
