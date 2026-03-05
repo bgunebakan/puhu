@@ -61,9 +61,10 @@ Install Development Dependencies
 
    # Install Python dependencies
    pip install -r requirements.txt
-
-   # Install pre-commit hooks (optional but recommended)
+   pip install -r requirements-dev.txt
    pip install pre-commit
+   
+   # Install pre-commit hooks
    pre-commit install
 
 Build the Project
@@ -271,6 +272,14 @@ If your change affects performance, run benchmarks:
 .. code-block:: bash
 
    python benchmark.py
+
+Benchmark runner behavior (one-liners):
+
+- Defaults to ``--runs 30 --warmup 3`` for consistent comparisons.
+- Reuses fixtures/output in ``benchmark_results/`` between benchmark runs.
+- Prints a copyable markdown table aligned with ``BENCHMARKS.md`` columns.
+- Can write the table to a file with ``--table-out``.
+- Never overwrites ``BENCHMARKS.md`` automatically.
 
 Pull Request Guidelines
 -----------------------
