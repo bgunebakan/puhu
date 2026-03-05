@@ -1,5 +1,15 @@
 #!/usr/bin/env python3
 from __future__ import annotations
+"""
+Hyperfine benchmark runner for Puhu vs Pillow.
+
+One-line change notes:
+- Uses fixed defaults (`--runs 30`, `--warmup 3`) for stable comparisons.
+- Reuses generated input fixtures in `benchmark_results/` across runs.
+- Prints a markdown table matching the BENCHMARKS.md column format.
+- Can optionally write only the table via `--table-out` for easy copy/paste.
+- Does not mutate BENCHMARKS.md automatically.
+"""
 
 import argparse
 import json

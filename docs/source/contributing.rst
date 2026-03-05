@@ -273,6 +273,14 @@ If your change affects performance, run benchmarks:
 
    python benchmark.py
 
+Benchmark runner behavior (one-liners):
+
+- Defaults to ``--runs 30 --warmup 3`` for consistent comparisons.
+- Reuses fixtures/output in ``benchmark_results/`` between benchmark runs.
+- Prints a copyable markdown table aligned with ``BENCHMARKS.md`` columns.
+- Can write the table to a file with ``--table-out``.
+- Never overwrites ``BENCHMARKS.md`` automatically.
+
 Pull Request Guidelines
 -----------------------
 

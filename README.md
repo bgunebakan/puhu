@@ -69,6 +69,13 @@ python benchmark.py
 
 This command prints a copyable markdown table (it does not update `BENCHMARKS.md`).
 
+Benchmark workflow changes:
+- Single command entrypoint (`python benchmark.py`) for Puhu vs Pillow runs.
+- Default harness settings are fixed to `--runs 30 --warmup 3`.
+- Artifacts are reused under `benchmark_results/` to avoid setup overhead.
+- Output table matches the `BENCHMARKS.md` summary-table column format.
+- Optional `--table-out <path>` writes only the generated markdown table.
+
 ## Development
 
 ### Building from Source
