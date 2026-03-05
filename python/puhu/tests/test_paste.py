@@ -189,3 +189,35 @@ class TestPaste:
         data = bg.to_bytes()
         # Should be gray (~128)
         assert 120 <= data[0] <= 135
+
+    def test_paste_mask_size_mismatch_raises(self):
+        """Mask size must match source image size."""
+        bg = Image.new("RGB", (10, 10), "black")
+        fg = Image.new("RGB", (5, 5), "white")
+        mask = Image.new("L", (4, 5), 255)
+
+        with pytest.raises(Exception) as exc_info:
+            bg.paste(fg, (0, 0), mask)
+
+        assert "Mask size" in str(exc_info.value)
+
+    def test_paste_color_without_4tuple_raises(self):
+        """Color paste without mask requires a 4-item box for region size."""
+        bg = Image.new("RGB", (10, 10), "black")
+
+        with pytest.raises(Exception) as exc_info:
+            bg.paste((255, 0, 0), (2, 2))
+
+        assert "Cannot determine region size for color fill" in str(exc_info.value)
+
+    def test_paste_with_fully_transparent_mask_is_noop(self):
+        """Fully transparent mask should not alter destination pixels."""
+        bg = Image.new("RGB", (10, 10), (10, 20, 30))
+        fg = Image.new("RGB", (5, 5), (255, 255, 255))
+        mask = Image.new("L", (5, 5), 0)
+
+        before = bg.to_bytes()
+        bg.paste(fg, (0, 0), mask)
+        after = bg.to_bytes()
+
+        assert before == after
