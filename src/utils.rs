@@ -1,6 +1,7 @@
 use crate::errors::PuhuError;
 use image::{ColorType, DynamicImage, GenericImage, GenericImageView, GrayImage};
 use pyo3::prelude::*;
+use std::borrow::Cow;
 
 pub fn color_type_to_mode_string(color_type: ColorType) -> String {
     match color_type {
@@ -124,8 +125,11 @@ pub fn paste_with_mask(
         None => return Ok(()), // Nothing to paste
     };
 
-    // Reuse grayscale masks without reallocation when possible.
-    let mask_gray = mask.as_luma8().cloned().unwrap_or_else(|| mask.to_luma8());
+    // Borrow the inner buffer directly when mask is already luma8, convert otherwise.
+    let mask_gray: Cow<GrayImage> = match mask.as_luma8() {
+        Some(g) => Cow::Borrowed(g),
+        None => Cow::Owned(mask.to_luma8()),
+    };
 
     // Fast paths for common modes using typed image buffers.
     if let (Some(dest_rgb), Some(src_rgb)) = (dest.as_mut_rgb8(), src.as_rgb8()) {
@@ -269,8 +273,9 @@ fn paste_with_mask_rgb8(
             }
             let inv_alpha = 255u16 - alpha as u16;
             let s = src.get_pixel(sx, sy).0;
-            let d = dest.get_pixel(dx, dy).0;
-            *dest.get_pixel_mut(dx, dy) = image::Rgb([
+            let d_pixel = dest.get_pixel_mut(dx, dy);
+            let d = d_pixel.0;
+            *d_pixel = image::Rgb([
                 blend_u8(s[0], d[0], alpha, inv_alpha),
                 blend_u8(s[1], d[1], alpha, inv_alpha),
                 blend_u8(s[2], d[2], alpha, inv_alpha),
@@ -301,8 +306,9 @@ fn paste_with_mask_rgba8(
             }
             let inv_alpha = 255u16 - alpha as u16;
             let s = src.get_pixel(sx, sy).0;
-            let d = dest.get_pixel(dx, dy).0;
-            *dest.get_pixel_mut(dx, dy) = image::Rgba([
+            let d_pixel = dest.get_pixel_mut(dx, dy);
+            let d = d_pixel.0;
+            *d_pixel = image::Rgba([
                 blend_u8(s[0], d[0], alpha, inv_alpha),
                 blend_u8(s[1], d[1], alpha, inv_alpha),
                 blend_u8(s[2], d[2], alpha, inv_alpha),
