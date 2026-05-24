@@ -366,6 +366,102 @@ impl PyImage {
         }
     }
 
+    fn split(&mut self) -> PyResult<Vec<Self>> {
+        let image = self.get_image()?;
+        let width = image.width();
+        let height = image.height();
+
+        let bands: Vec<DynamicImage> = Python::with_gil(|py| {
+            py.allow_threads(|| match image {
+                DynamicImage::ImageLuma8(img) => {
+                    vec![DynamicImage::ImageLuma8(img.clone())]
+                }
+                DynamicImage::ImageLumaA8(img) => {
+                    let raw = img.as_raw();
+                    let luma: Vec<u8> = raw.chunks_exact(2).map(|p| p[0]).collect();
+                    let alpha: Vec<u8> = raw.chunks_exact(2).map(|p| p[1]).collect();
+                    vec![
+                        DynamicImage::ImageLuma8(
+                            image::GrayImage::from_raw(width, height, luma).unwrap(),
+                        ),
+                        DynamicImage::ImageLuma8(
+                            image::GrayImage::from_raw(width, height, alpha).unwrap(),
+                        ),
+                    ]
+                }
+                DynamicImage::ImageRgb8(img) => {
+                    let raw = img.as_raw();
+                    let r: Vec<u8> = raw.chunks_exact(3).map(|p| p[0]).collect();
+                    let g: Vec<u8> = raw.chunks_exact(3).map(|p| p[1]).collect();
+                    let b: Vec<u8> = raw.chunks_exact(3).map(|p| p[2]).collect();
+                    vec![
+                        DynamicImage::ImageLuma8(
+                            image::GrayImage::from_raw(width, height, r).unwrap(),
+                        ),
+                        DynamicImage::ImageLuma8(
+                            image::GrayImage::from_raw(width, height, g).unwrap(),
+                        ),
+                        DynamicImage::ImageLuma8(
+                            image::GrayImage::from_raw(width, height, b).unwrap(),
+                        ),
+                    ]
+                }
+                DynamicImage::ImageRgba8(img) => {
+                    let raw = img.as_raw();
+                    let r: Vec<u8> = raw.chunks_exact(4).map(|p| p[0]).collect();
+                    let g: Vec<u8> = raw.chunks_exact(4).map(|p| p[1]).collect();
+                    let b: Vec<u8> = raw.chunks_exact(4).map(|p| p[2]).collect();
+                    let a: Vec<u8> = raw.chunks_exact(4).map(|p| p[3]).collect();
+                    vec![
+                        DynamicImage::ImageLuma8(
+                            image::GrayImage::from_raw(width, height, r).unwrap(),
+                        ),
+                        DynamicImage::ImageLuma8(
+                            image::GrayImage::from_raw(width, height, g).unwrap(),
+                        ),
+                        DynamicImage::ImageLuma8(
+                            image::GrayImage::from_raw(width, height, b).unwrap(),
+                        ),
+                        DynamicImage::ImageLuma8(
+                            image::GrayImage::from_raw(width, height, a).unwrap(),
+                        ),
+                    ]
+                }
+                _ => {
+                    // Fallback for 16-bit/float variants: normalise to RGBA8 first
+                    let rgba = image.to_rgba8();
+                    let raw = rgba.as_raw();
+                    let r: Vec<u8> = raw.chunks_exact(4).map(|p| p[0]).collect();
+                    let g: Vec<u8> = raw.chunks_exact(4).map(|p| p[1]).collect();
+                    let b: Vec<u8> = raw.chunks_exact(4).map(|p| p[2]).collect();
+                    let a: Vec<u8> = raw.chunks_exact(4).map(|p| p[3]).collect();
+                    vec![
+                        DynamicImage::ImageLuma8(
+                            image::GrayImage::from_raw(width, height, r).unwrap(),
+                        ),
+                        DynamicImage::ImageLuma8(
+                            image::GrayImage::from_raw(width, height, g).unwrap(),
+                        ),
+                        DynamicImage::ImageLuma8(
+                            image::GrayImage::from_raw(width, height, b).unwrap(),
+                        ),
+                        DynamicImage::ImageLuma8(
+                            image::GrayImage::from_raw(width, height, a).unwrap(),
+                        ),
+                    ]
+                }
+            })
+        });
+
+        Ok(bands
+            .into_iter()
+            .map(|band| PyImage {
+                lazy_image: LazyImage::Loaded(band),
+                format: None,
+            })
+            .collect())
+    }
+
     #[pyo3(signature = (mode, matrix=None, dither=None, palette=None, colors=None))]
     fn convert(
         &mut self,
