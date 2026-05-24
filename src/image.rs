@@ -96,6 +96,13 @@ impl PyImage {
         }
 
         let parsed_color = if let Some(c) = color {
+            // Pillow raises TypeError for 2-tuple colors on non-LA modes
+            if c.extract::<(u8, u8)>().is_ok() && mode != "LA" {
+                return Err(PuhuError::InvalidOperation(
+                    "color must be int, or tuple of one, three, or four elements".to_string(),
+                )
+                .into());
+            }
             parse_color(c)?
         } else {
             (0, 0, 0, 0)
@@ -371,87 +378,107 @@ impl PyImage {
         let width = image.width();
         let height = image.height();
 
+        let mismatch = || PuhuError::InvalidOperation("split: buffer size mismatch".to_string());
+
         let bands: Vec<DynamicImage> = Python::with_gil(|py| {
-            py.allow_threads(|| match image {
-                DynamicImage::ImageLuma8(img) => {
-                    vec![DynamicImage::ImageLuma8(img.clone())]
-                }
-                DynamicImage::ImageLumaA8(img) => {
-                    let raw = img.as_raw();
-                    let luma: Vec<u8> = raw.chunks_exact(2).map(|p| p[0]).collect();
-                    let alpha: Vec<u8> = raw.chunks_exact(2).map(|p| p[1]).collect();
-                    vec![
-                        DynamicImage::ImageLuma8(
-                            image::GrayImage::from_raw(width, height, luma).unwrap(),
-                        ),
-                        DynamicImage::ImageLuma8(
-                            image::GrayImage::from_raw(width, height, alpha).unwrap(),
-                        ),
-                    ]
-                }
-                DynamicImage::ImageRgb8(img) => {
-                    let raw = img.as_raw();
-                    let r: Vec<u8> = raw.chunks_exact(3).map(|p| p[0]).collect();
-                    let g: Vec<u8> = raw.chunks_exact(3).map(|p| p[1]).collect();
-                    let b: Vec<u8> = raw.chunks_exact(3).map(|p| p[2]).collect();
-                    vec![
-                        DynamicImage::ImageLuma8(
-                            image::GrayImage::from_raw(width, height, r).unwrap(),
-                        ),
-                        DynamicImage::ImageLuma8(
-                            image::GrayImage::from_raw(width, height, g).unwrap(),
-                        ),
-                        DynamicImage::ImageLuma8(
-                            image::GrayImage::from_raw(width, height, b).unwrap(),
-                        ),
-                    ]
-                }
-                DynamicImage::ImageRgba8(img) => {
-                    let raw = img.as_raw();
-                    let r: Vec<u8> = raw.chunks_exact(4).map(|p| p[0]).collect();
-                    let g: Vec<u8> = raw.chunks_exact(4).map(|p| p[1]).collect();
-                    let b: Vec<u8> = raw.chunks_exact(4).map(|p| p[2]).collect();
-                    let a: Vec<u8> = raw.chunks_exact(4).map(|p| p[3]).collect();
-                    vec![
-                        DynamicImage::ImageLuma8(
-                            image::GrayImage::from_raw(width, height, r).unwrap(),
-                        ),
-                        DynamicImage::ImageLuma8(
-                            image::GrayImage::from_raw(width, height, g).unwrap(),
-                        ),
-                        DynamicImage::ImageLuma8(
-                            image::GrayImage::from_raw(width, height, b).unwrap(),
-                        ),
-                        DynamicImage::ImageLuma8(
-                            image::GrayImage::from_raw(width, height, a).unwrap(),
-                        ),
-                    ]
-                }
-                _ => {
-                    // Fallback for 16-bit/float variants: normalise to RGBA8 first
-                    let rgba = image.to_rgba8();
-                    let raw = rgba.as_raw();
-                    let r: Vec<u8> = raw.chunks_exact(4).map(|p| p[0]).collect();
-                    let g: Vec<u8> = raw.chunks_exact(4).map(|p| p[1]).collect();
-                    let b: Vec<u8> = raw.chunks_exact(4).map(|p| p[2]).collect();
-                    let a: Vec<u8> = raw.chunks_exact(4).map(|p| p[3]).collect();
-                    vec![
-                        DynamicImage::ImageLuma8(
-                            image::GrayImage::from_raw(width, height, r).unwrap(),
-                        ),
-                        DynamicImage::ImageLuma8(
-                            image::GrayImage::from_raw(width, height, g).unwrap(),
-                        ),
-                        DynamicImage::ImageLuma8(
-                            image::GrayImage::from_raw(width, height, b).unwrap(),
-                        ),
-                        DynamicImage::ImageLuma8(
-                            image::GrayImage::from_raw(width, height, a).unwrap(),
-                        ),
-                    ]
+            py.allow_threads(|| -> Result<Vec<DynamicImage>, PuhuError> {
+                match image {
+                    DynamicImage::ImageLuma8(img) => {
+                        Ok(vec![DynamicImage::ImageLuma8(img.clone())])
+                    }
+                    DynamicImage::ImageLuma16(img) => {
+                        Ok(vec![DynamicImage::ImageLuma16(img.clone())])
+                    }
+                    DynamicImage::ImageLumaA8(img) => {
+                        let raw = img.as_raw();
+                        let luma: Vec<u8> = raw.chunks_exact(2).map(|p| p[0]).collect();
+                        let alpha: Vec<u8> = raw.chunks_exact(2).map(|p| p[1]).collect();
+                        Ok(vec![
+                            DynamicImage::ImageLuma8(
+                                image::GrayImage::from_raw(width, height, luma)
+                                    .ok_or_else(mismatch)?,
+                            ),
+                            DynamicImage::ImageLuma8(
+                                image::GrayImage::from_raw(width, height, alpha)
+                                    .ok_or_else(mismatch)?,
+                            ),
+                        ])
+                    }
+                    DynamicImage::ImageRgb8(img) => {
+                        let raw = img.as_raw();
+                        let r: Vec<u8> = raw.chunks_exact(3).map(|p| p[0]).collect();
+                        let g: Vec<u8> = raw.chunks_exact(3).map(|p| p[1]).collect();
+                        let b: Vec<u8> = raw.chunks_exact(3).map(|p| p[2]).collect();
+                        Ok(vec![
+                            DynamicImage::ImageLuma8(
+                                image::GrayImage::from_raw(width, height, r)
+                                    .ok_or_else(mismatch)?,
+                            ),
+                            DynamicImage::ImageLuma8(
+                                image::GrayImage::from_raw(width, height, g)
+                                    .ok_or_else(mismatch)?,
+                            ),
+                            DynamicImage::ImageLuma8(
+                                image::GrayImage::from_raw(width, height, b)
+                                    .ok_or_else(mismatch)?,
+                            ),
+                        ])
+                    }
+                    DynamicImage::ImageRgba8(img) => {
+                        let raw = img.as_raw();
+                        let r: Vec<u8> = raw.chunks_exact(4).map(|p| p[0]).collect();
+                        let g: Vec<u8> = raw.chunks_exact(4).map(|p| p[1]).collect();
+                        let b: Vec<u8> = raw.chunks_exact(4).map(|p| p[2]).collect();
+                        let a: Vec<u8> = raw.chunks_exact(4).map(|p| p[3]).collect();
+                        Ok(vec![
+                            DynamicImage::ImageLuma8(
+                                image::GrayImage::from_raw(width, height, r)
+                                    .ok_or_else(mismatch)?,
+                            ),
+                            DynamicImage::ImageLuma8(
+                                image::GrayImage::from_raw(width, height, g)
+                                    .ok_or_else(mismatch)?,
+                            ),
+                            DynamicImage::ImageLuma8(
+                                image::GrayImage::from_raw(width, height, b)
+                                    .ok_or_else(mismatch)?,
+                            ),
+                            DynamicImage::ImageLuma8(
+                                image::GrayImage::from_raw(width, height, a)
+                                    .ok_or_else(mismatch)?,
+                            ),
+                        ])
+                    }
+                    _ => {
+                        // Fallback for remaining float/16-bit multi-channel variants
+                        let rgba = image.to_rgba8();
+                        let raw = rgba.as_raw();
+                        let r: Vec<u8> = raw.chunks_exact(4).map(|p| p[0]).collect();
+                        let g: Vec<u8> = raw.chunks_exact(4).map(|p| p[1]).collect();
+                        let b: Vec<u8> = raw.chunks_exact(4).map(|p| p[2]).collect();
+                        let a: Vec<u8> = raw.chunks_exact(4).map(|p| p[3]).collect();
+                        Ok(vec![
+                            DynamicImage::ImageLuma8(
+                                image::GrayImage::from_raw(width, height, r)
+                                    .ok_or_else(mismatch)?,
+                            ),
+                            DynamicImage::ImageLuma8(
+                                image::GrayImage::from_raw(width, height, g)
+                                    .ok_or_else(mismatch)?,
+                            ),
+                            DynamicImage::ImageLuma8(
+                                image::GrayImage::from_raw(width, height, b)
+                                    .ok_or_else(mismatch)?,
+                            ),
+                            DynamicImage::ImageLuma8(
+                                image::GrayImage::from_raw(width, height, a)
+                                    .ok_or_else(mismatch)?,
+                            ),
+                        ])
+                    }
                 }
             })
-        });
+        })?;
 
         Ok(bands
             .into_iter()

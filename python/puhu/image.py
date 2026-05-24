@@ -8,6 +8,14 @@ from typing import Any, Optional, Tuple, Union
 from ._core import Image as RustImage
 from .enums import Palette, Resampling, Transpose
 
+_BAND_NAMES: dict = {
+    "L": ("L",),
+    "LA": ("L", "A"),
+    "RGB": ("R", "G", "B"),
+    "RGBA": ("R", "G", "B", "A"),
+    "I": ("I",),
+}
+
 
 class Image:
     """
@@ -210,14 +218,7 @@ class Image:
 
     def getbands(self) -> Tuple[str, ...]:
         """Return a tuple containing the name of each band in the image."""
-        _BANDS: dict = {
-            "L": ("L",),
-            "LA": ("L", "A"),
-            "RGB": ("R", "G", "B"),
-            "RGBA": ("R", "G", "B", "A"),
-            "I": ("I",),
-        }
-        return _BANDS.get(self.mode, (self.mode,))
+        return _BAND_NAMES.get(self.mode, (self.mode,))
 
     def thumbnail(
         self,

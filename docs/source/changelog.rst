@@ -7,7 +7,7 @@ The format is based on `Keep a Changelog <https://keepachangelog.com/>`_.
 
 
 Unreleased Version
-----------
+------------------
 
 **Added**
 - ``split()`` method — split an image into its individual bands:

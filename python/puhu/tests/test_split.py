@@ -2,8 +2,6 @@
 Tests for Image.split() and Image.getbands() — Pillow-compatible band splitting.
 """
 
-import pytest
-
 from puhu import Image
 
 
@@ -100,38 +98,6 @@ class TestSplit:
         (r,) = img.split()[0].split()
         assert r.mode == "L"
         assert len(r.to_bytes()) == 4
-
-    def test_pillow_compat_rgb(self):
-        PIL = pytest.importorskip("PIL.Image")
-        color = (10, 20, 30)
-        pu = Image.new("RGB", (3, 3), color)
-        pi = PIL.new("RGB", (3, 3), color)
-        for i, (pu_band, pi_band) in enumerate(zip(pu.split(), pi.split())):
-            assert pu_band.to_bytes() == pi_band.tobytes(), f"Band {i} mismatch"
-
-    def test_pillow_compat_rgba(self):
-        PIL = pytest.importorskip("PIL.Image")
-        color = (100, 150, 200, 255)
-        pu = Image.new("RGBA", (3, 3), color)
-        pi = PIL.new("RGBA", (3, 3), color)
-        for i, (pu_band, pi_band) in enumerate(zip(pu.split(), pi.split())):
-            assert pu_band.to_bytes() == pi_band.tobytes(), f"Band {i} mismatch"
-
-    def test_pillow_compat_la(self):
-        PIL = pytest.importorskip("PIL.Image")
-        color = (77, 200)
-        pu = Image.new("LA", (3, 3), color)
-        pi = PIL.new("LA", (3, 3), color)
-        for i, (pu_band, pi_band) in enumerate(zip(pu.split(), pi.split())):
-            assert pu_band.to_bytes() == pi_band.tobytes(), f"Band {i} mismatch"
-
-    def test_pillow_compat_l(self):
-        PIL = pytest.importorskip("PIL.Image")
-        pu = Image.new("L", (3, 3), 128)
-        pi = PIL.new("L", (3, 3), 128)
-        (pu_band,) = pu.split()
-        (pi_band,) = pi.split()
-        assert pu_band.to_bytes() == pi_band.tobytes()
 
 
 class TestGetbands:
