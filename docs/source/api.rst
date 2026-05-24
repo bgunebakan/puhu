@@ -163,6 +163,57 @@ Image Class
           img_copy = img.copy()
 
 
+   .. py:method:: split()
+
+      Split this image into individual bands.
+
+      Returns a tuple of L-mode (grayscale) images, one per channel. For a
+      single-band image (mode ``"L"``), the tuple contains a copy of the
+      image with its mode preserved.
+
+      All returned images are independent copies — modifying one band does
+      not affect the original or other bands.
+
+      Matches Pillow's ``Image.split()`` exactly.
+
+      :return: A tuple of Image objects, one per band
+      :rtype: tuple[Image, ...]
+
+      Example::
+
+          # Split an RGB image into R, G, B channels
+          img = puhu.open("photo.jpg")  # mode = "RGB"
+          r, g, b = img.split()
+
+          # Split an RGBA image
+          img = puhu.open("photo.png")  # mode = "RGBA"
+          r, g, b, a = img.split()
+
+          # Recombine channels (e.g. boost red)
+          import puhu
+          r_boosted = puhu.Image.new("L", img.size, 255)
+          out = puhu.merge("RGB", (r_boosted, g, b))
+
+
+   .. py:method:: getbands()
+
+      Return a tuple containing the name of each band in the image.
+
+      :return: A tuple of band name strings
+      :rtype: tuple[str, ...]
+
+      Example::
+
+          img = puhu.Image.new("RGB", (100, 100))
+          img.getbands()   # ('R', 'G', 'B')
+
+          img = puhu.Image.new("RGBA", (100, 100))
+          img.getbands()   # ('R', 'G', 'B', 'A')
+
+          img = puhu.Image.new("LA", (100, 100))
+          img.getbands()   # ('L', 'A')
+
+
    .. py:method:: thumbnail(size)
 
       Modifies this image to contain a thumbnail version of itself, no larger than the given size.
@@ -254,6 +305,7 @@ Puhu supports the following image modes:
 
 - **"1"**: 1-bit pixels, black and white
 - **"L"**: 8-bit pixels, grayscale
+- **"LA"**: 8-bit pixels, grayscale with alpha
 - **"RGB"**: 3x8-bit pixels, true color
 - **"RGBA"**: 4x8-bit pixels, true color with transparency
 

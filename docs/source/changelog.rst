@@ -5,6 +5,22 @@ All notable changes to Puhu will be documented here.
 
 The format is based on `Keep a Changelog <https://keepachangelog.com/>`_.
 
+
+Unreleased Version
+----------
+
+**Added**
+- ``split()`` method — split an image into its individual bands:
+
+  - Returns a ``tuple[Image, ...]`` matching Pillow's exact return type
+  - Each band is an independent L-mode (grayscale) copy
+  - Supported for all modes: ``L``, ``LA``, ``RGB``, ``RGBA``
+  - GIL released during channel extraction; LLVM-vectorisable hot path
+
+- ``getbands()`` method — return band name tuple (e.g. ``('R', 'G', 'B')``)
+
+- ``Image.new()`` now accepts 2-tuple ``(luma, alpha)`` color for ``LA`` mode images
+
 Version 0.3.0 (Current)
 -----------------------
 
@@ -83,9 +99,9 @@ Upcoming Features
 Planned for Next Release
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-- ``paste()`` method for image composition
-- ``split()`` and ``merge()`` for band operations
+- ``merge()`` for combining bands back into a multi-channel image
 - ``fromarray()`` for NumPy integration
+- ``getpixel()`` / ``putpixel()`` for direct pixel access
 - Additional image modes
 
 Under Consideration
