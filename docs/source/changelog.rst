@@ -6,6 +6,25 @@ All notable changes to Puhu will be documented here.
 The format is based on `Keep a Changelog <https://keepachangelog.com/>`_.
 
 
+Version 0.4.1
+-------------
+
+**Changed**
+
+- ``crop()`` rewritten with row-by-row ``memcpy`` for all common pixel formats (L, LA, RGB, RGBA),
+  replacing the previous pixel-by-pixel iteration via ``image::crop_imm``; now **1.1–3.7×** faster
+  than Pillow across image sizes
+- ``split()`` rewritten with a single-pass unsafe deinterleave that pre-allocates output buffers
+  and uses ``iter_mut()`` to prove non-aliasing to LLVM, enabling paired SIMD loads;
+  **1.3–5.1×** faster than Pillow across all modes and sizes
+- Internal refactor: ``crop_raw`` moved to ``utils`` module, band deinterleave logic extracted
+  to ``conversions::split_bands`` — no API changes
+
+**Fixed**
+
+- Fixed a type error in 16-bit grayscale (``ImageLuma16``) crop that caused a compile failure
+  when operating on ``I``-mode images loaded from 16-bit files
+
 Version 0.4.0
 -------------
 
