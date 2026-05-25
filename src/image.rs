@@ -4,7 +4,7 @@ use crate::formats;
 use crate::operations;
 use crate::palette;
 use crate::utils::{
-    color_type_to_mode_string, convert_mode, fill_region, parse_color, paste_with_mask,
+    color_type_to_mode_string, convert_mode, crop_raw, fill_region, parse_color, paste_with_mask,
 };
 use image::{DynamicImage, ImageFormat};
 use pyo3::prelude::*;
@@ -264,9 +264,50 @@ impl PyImage {
             .into());
         }
 
+        let (xu, yu, wu, hu) = (x as usize, y as usize, width as usize, height as usize);
+
         Ok(Python::with_gil(|py| {
             py.allow_threads(|| {
-                let cropped = image.crop_imm(x, y, width, height);
+                let cropped = match image {
+                    DynamicImage::ImageLuma8(img) => {
+                        let v = crop_raw(img.as_raw(), img.width() as usize, xu, yu, wu, hu, 1);
+                        DynamicImage::ImageLuma8(
+                            image::GrayImage::from_raw(width, height, v).unwrap(),
+                        )
+                    }
+                    DynamicImage::ImageLuma16(img) => {
+                        let n = wu * hu;
+                        let src = img.as_raw();
+                        let src_w = img.width() as usize;
+                        let mut dst = Vec::with_capacity(n);
+                        for row in 0..hu {
+                            let start = (yu + row) * src_w + xu;
+                            dst.extend_from_slice(&src[start..start + wu]);
+                        }
+                        DynamicImage::ImageLuma16(
+                            image::ImageBuffer::from_raw(width, height, dst).unwrap(),
+                        )
+                    }
+                    DynamicImage::ImageLumaA8(img) => {
+                        let v = crop_raw(img.as_raw(), img.width() as usize, xu, yu, wu, hu, 2);
+                        DynamicImage::ImageLumaA8(
+                            image::GrayAlphaImage::from_raw(width, height, v).unwrap(),
+                        )
+                    }
+                    DynamicImage::ImageRgb8(img) => {
+                        let v = crop_raw(img.as_raw(), img.width() as usize, xu, yu, wu, hu, 3);
+                        DynamicImage::ImageRgb8(
+                            image::RgbImage::from_raw(width, height, v).unwrap(),
+                        )
+                    }
+                    DynamicImage::ImageRgba8(img) => {
+                        let v = crop_raw(img.as_raw(), img.width() as usize, xu, yu, wu, hu, 4);
+                        DynamicImage::ImageRgba8(
+                            image::RgbaImage::from_raw(width, height, v).unwrap(),
+                        )
+                    }
+                    _ => image.crop_imm(x, y, width, height),
+                };
                 PyImage {
                     lazy_image: LazyImage::Loaded(cropped),
                     format,
@@ -378,106 +419,8 @@ impl PyImage {
         let width = image.width();
         let height = image.height();
 
-        let mismatch = || PuhuError::InvalidOperation("split: buffer size mismatch".to_string());
-
-        let bands: Vec<DynamicImage> = Python::with_gil(|py| {
-            py.allow_threads(|| -> Result<Vec<DynamicImage>, PuhuError> {
-                match image {
-                    DynamicImage::ImageLuma8(img) => {
-                        Ok(vec![DynamicImage::ImageLuma8(img.clone())])
-                    }
-                    DynamicImage::ImageLuma16(img) => {
-                        Ok(vec![DynamicImage::ImageLuma16(img.clone())])
-                    }
-                    DynamicImage::ImageLumaA8(img) => {
-                        let raw = img.as_raw();
-                        let luma: Vec<u8> = raw.chunks_exact(2).map(|p| p[0]).collect();
-                        let alpha: Vec<u8> = raw.chunks_exact(2).map(|p| p[1]).collect();
-                        Ok(vec![
-                            DynamicImage::ImageLuma8(
-                                image::GrayImage::from_raw(width, height, luma)
-                                    .ok_or_else(mismatch)?,
-                            ),
-                            DynamicImage::ImageLuma8(
-                                image::GrayImage::from_raw(width, height, alpha)
-                                    .ok_or_else(mismatch)?,
-                            ),
-                        ])
-                    }
-                    DynamicImage::ImageRgb8(img) => {
-                        let raw = img.as_raw();
-                        let r: Vec<u8> = raw.chunks_exact(3).map(|p| p[0]).collect();
-                        let g: Vec<u8> = raw.chunks_exact(3).map(|p| p[1]).collect();
-                        let b: Vec<u8> = raw.chunks_exact(3).map(|p| p[2]).collect();
-                        Ok(vec![
-                            DynamicImage::ImageLuma8(
-                                image::GrayImage::from_raw(width, height, r)
-                                    .ok_or_else(mismatch)?,
-                            ),
-                            DynamicImage::ImageLuma8(
-                                image::GrayImage::from_raw(width, height, g)
-                                    .ok_or_else(mismatch)?,
-                            ),
-                            DynamicImage::ImageLuma8(
-                                image::GrayImage::from_raw(width, height, b)
-                                    .ok_or_else(mismatch)?,
-                            ),
-                        ])
-                    }
-                    DynamicImage::ImageRgba8(img) => {
-                        let raw = img.as_raw();
-                        let r: Vec<u8> = raw.chunks_exact(4).map(|p| p[0]).collect();
-                        let g: Vec<u8> = raw.chunks_exact(4).map(|p| p[1]).collect();
-                        let b: Vec<u8> = raw.chunks_exact(4).map(|p| p[2]).collect();
-                        let a: Vec<u8> = raw.chunks_exact(4).map(|p| p[3]).collect();
-                        Ok(vec![
-                            DynamicImage::ImageLuma8(
-                                image::GrayImage::from_raw(width, height, r)
-                                    .ok_or_else(mismatch)?,
-                            ),
-                            DynamicImage::ImageLuma8(
-                                image::GrayImage::from_raw(width, height, g)
-                                    .ok_or_else(mismatch)?,
-                            ),
-                            DynamicImage::ImageLuma8(
-                                image::GrayImage::from_raw(width, height, b)
-                                    .ok_or_else(mismatch)?,
-                            ),
-                            DynamicImage::ImageLuma8(
-                                image::GrayImage::from_raw(width, height, a)
-                                    .ok_or_else(mismatch)?,
-                            ),
-                        ])
-                    }
-                    _ => {
-                        // Fallback for remaining float/16-bit multi-channel variants
-                        let rgba = image.to_rgba8();
-                        let raw = rgba.as_raw();
-                        let r: Vec<u8> = raw.chunks_exact(4).map(|p| p[0]).collect();
-                        let g: Vec<u8> = raw.chunks_exact(4).map(|p| p[1]).collect();
-                        let b: Vec<u8> = raw.chunks_exact(4).map(|p| p[2]).collect();
-                        let a: Vec<u8> = raw.chunks_exact(4).map(|p| p[3]).collect();
-                        Ok(vec![
-                            DynamicImage::ImageLuma8(
-                                image::GrayImage::from_raw(width, height, r)
-                                    .ok_or_else(mismatch)?,
-                            ),
-                            DynamicImage::ImageLuma8(
-                                image::GrayImage::from_raw(width, height, g)
-                                    .ok_or_else(mismatch)?,
-                            ),
-                            DynamicImage::ImageLuma8(
-                                image::GrayImage::from_raw(width, height, b)
-                                    .ok_or_else(mismatch)?,
-                            ),
-                            DynamicImage::ImageLuma8(
-                                image::GrayImage::from_raw(width, height, a)
-                                    .ok_or_else(mismatch)?,
-                            ),
-                        ])
-                    }
-                }
-            })
+        let bands = Python::with_gil(|py| {
+            py.allow_threads(|| conversions::split_bands(image, width, height))
         })?;
 
         Ok(bands

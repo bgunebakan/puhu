@@ -321,6 +321,24 @@ fn paste_with_mask_rgba8(
     }
 }
 
+pub(crate) fn crop_raw(
+    raw: &[u8],
+    src_width: usize,
+    x: usize,
+    y: usize,
+    w: usize,
+    h: usize,
+    bpp: usize,
+) -> Vec<u8> {
+    let row_bytes = w * bpp;
+    let mut dst = Vec::with_capacity(h * row_bytes);
+    for row in 0..h {
+        let start = ((y + row) * src_width + x) * bpp;
+        dst.extend_from_slice(&raw[start..start + row_bytes]);
+    }
+    dst
+}
+
 /// Convert image to a different mode
 pub fn convert_mode(image: &DynamicImage, target_mode: &str) -> Result<DynamicImage, PuhuError> {
     match target_mode {
