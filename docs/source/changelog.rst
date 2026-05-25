@@ -10,15 +10,13 @@ Unreleased Version
 ------------------
 
 **Added**
+- Python 3.14 added to CI test matrix and ``pyproject.toml`` classifiers
 - ``split()`` method — split an image into its individual bands:
-
-  - Returns a ``tuple[Image, ...]`` matching Pillow's exact return type
-  - Each band is an independent L-mode (grayscale) copy
-  - Supported for all modes: ``L``, ``LA``, ``RGB``, ``RGBA``
-  - GIL released during channel extraction; LLVM-vectorisable hot path
-
+- Returns a ``tuple[Image, ...]`` matching Pillow's exact return type
+- Each band is an independent L-mode (grayscale) copy
+- Supported for all modes: ``L``, ``LA``, ``RGB``, ``RGBA``
+- GIL released during channel extraction; LLVM-vectorisable hot path
 - ``getbands()`` method — return band name tuple (e.g. ``('R', 'G', 'B')``)
-
 - ``Image.new()`` now accepts 2-tuple ``(luma, alpha)`` color for ``LA`` mode images
 
 Version 0.3.0 (Current)
@@ -27,13 +25,12 @@ Version 0.3.0 (Current)
 **Added**
 
 - ``paste()`` method for image composition with full Pillow compatibility:
-
-  - 2-tuple and 4-tuple box coordinates
-  - Negative coordinates with automatic clipping
-  - Color fills via RGB/RGBA tuples, single integers, or color strings
-  - Mask-based alpha blending
-  - Abbreviated syntax ``paste(im, mask)``
-  - Automatic mode conversion between source and destination
+- 2-tuple and 4-tuple box coordinates
+- Negative coordinates with automatic clipping
+- Color fills via RGB/RGBA tuples, single integers, or color strings
+- Mask-based alpha blending
+- Abbreviated syntax ``paste(im, mask)``
+- Automatic mode conversion between source and destination
 
 Version 0.2.2
 -----------------------
