@@ -6,8 +6,8 @@ All notable changes to Puhu will be documented here.
 The format is based on `Keep a Changelog <https://keepachangelog.com/>`_.
 
 
-Unreleased Version
-------------------
+Version 0.4.0
+-------------
 
 **Added**
 - Python 3.14 added to CI test matrix and ``pyproject.toml`` classifiers
@@ -19,7 +19,7 @@ Unreleased Version
 - ``getbands()`` method — return band name tuple (e.g. ``('R', 'G', 'B')``)
 - ``Image.new()`` now accepts 2-tuple ``(luma, alpha)`` color for ``LA`` mode images
 
-Version 0.3.0 (Current)
+Version 0.3.0
 -----------------------
 
 **Added**
