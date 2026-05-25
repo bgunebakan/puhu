@@ -8,6 +8,14 @@ from typing import Any, Optional, Tuple, Union
 from ._core import Image as RustImage
 from .enums import Palette, Resampling, Transpose
 
+_BAND_NAMES: dict = {
+    "L": ("L",),
+    "LA": ("L", "A"),
+    "RGB": ("R", "G", "B"),
+    "RGBA": ("R", "G", "B", "A"),
+    "I": ("I",),
+}
+
 
 class Image:
     """
@@ -198,6 +206,19 @@ class Image:
         """Create a copy of the image."""
         rust_image = self._rust_image.copy()
         return Image(rust_image)
+
+    def split(self) -> Tuple["Image", ...]:
+        """
+        Split this image into individual bands.
+
+        Returns a tuple of L-mode images, one per band. For single-band
+        images (L) the tuple contains a copy of the original.
+        """
+        return tuple(Image(band) for band in self._rust_image.split())
+
+    def getbands(self) -> Tuple[str, ...]:
+        """Return a tuple containing the name of each band in the image."""
+        return _BAND_NAMES.get(self.mode, (self.mode,))
 
     def thumbnail(
         self,

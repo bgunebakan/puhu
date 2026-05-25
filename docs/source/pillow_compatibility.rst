@@ -32,6 +32,8 @@ Image Operations
 - ``copy()`` - Create image copies
 - ``thumbnail()`` - Create thumbnails (in-place)
 - ``paste()`` - Paste images, colors, or fills with optional masks
+- ``split()`` - Split image into individual L-mode bands (tuple return, all modes)
+- ``getbands()`` - Return tuple of band name strings (e.g. ``('R', 'G', 'B')``)
 
 Properties and Attributes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -75,7 +77,6 @@ High Priority
 
 **In Development**
 
-- ``split()`` - Split into individual bands
 - ``merge()`` - Merge bands into a new image
 - ``fromarray()`` - Create from NumPy arrays
 - ``tobytes()`` / ``frombytes()`` - Byte conversion (partially available via ``to_bytes()``)
@@ -88,7 +89,6 @@ Medium Priority
 - ``filter()`` - Apply filters (blur, sharpen, etc.)
 - ``getpixel()`` / ``putpixel()`` - Pixel access
 - ``point()`` - Point operations
-- ``convert()`` - Mode conversion
 - ``getbbox()`` - Get bounding box
 - ``getcolors()`` - Get color histogram
 

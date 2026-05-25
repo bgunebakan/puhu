@@ -31,6 +31,9 @@ pub fn parse_color(input: &Bound<'_, PyAny>) -> PyResult<(u8, u8, u8, u8)> {
     } else if let Ok((val,)) = input.extract::<(u8,)>() {
         // Single-element tuple -> grayscale (opaque)
         Ok((val, val, val, 255))
+    } else if let Ok((l, a)) = input.extract::<(u8, u8)>() {
+        // 2-tuple (luma, alpha) for LA mode
+        Ok((l, l, l, a))
     } else if let Ok(tuple) = input.extract::<(u8, u8, u8)>() {
         // RGB tuple -> opaque
         Ok((tuple.0, tuple.1, tuple.2, 255))
